@@ -5,6 +5,7 @@ The **AnnotationTool** is annotating XML files with tags according to the TEI XM
 **Windows:**
 https://github.com/bspendrin/AnnotationTool/tree/main/build/windows  
 **Linux:**
+Not available yet.
 https://github.com/bspendrin/AnnotationTool/tree/main/build/linux  
 **MacOS:**
 https://github.com/bspendrin/AnnotationTool/tree/main/build/macos  
