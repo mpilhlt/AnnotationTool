@@ -2,12 +2,15 @@ The **AnnotationTool** is annotating XML files with tags according to the TEI XM
 
 # Downloads
 **Windows:**
-https://github.com/bspendrin/AnnotationTool/tree/main/build/windows
+https://github.com/bspendrin/AnnotationTool/tree/main/build/windows  
 **Linux:**
-https://github.com/bspendrin/AnnotationTool/tree/main/build/linux
+https://github.com/bspendrin/AnnotationTool/tree/main/build/linux  
 **MacOS:**
-https://github.com/bspendrin/AnnotationTool/tree/main/build/macos
+https://github.com/bspendrin/AnnotationTool/tree/main/build/macos  
 
 # Example Files
-You can find example files from the project here:
+You can find example files from the project here:  
 https://github.com/bspendrin/AnnotationTool/tree/main/examples
+
+# Comments/Suggestions
+Feel free to give comments and/or suggestions here or privately to benjamin.spendrin@posteo.de
