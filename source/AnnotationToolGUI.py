@@ -1,14 +1,3 @@
-#Dieses Anwendung nimmt automatische Annotationen im TEI XML Standard vor.
-#Autor: Benjamin Spendrin
-#Email: benjamin.spendrin@posteo.de
-
-#ToDo
-#Dateipfade eingeben statt hard codiert
-#Sanity Checks --> Gucken, dass Tag nicht schon vorhanden
-#Ausgabe, wenn sowas passiert?
-#Fehlerausgaben
-#Ganz weit weg: simple GUI, mit Eingabe der Tags?
-
 from __future__ import annotations
 from distutils.filelist import FileList
 from textwrap import wrap
@@ -28,7 +17,7 @@ def openFile():
     #print(name)
     return name
 
-#Funktionen, um die Pfade für die Dateiliste und die Tagliste auszuwählen
+#Pfad zur Dateiliste setzen
 def setDateilistePfad():
     global FileListPath
     FileListPath = os.path.abspath(openFile())
@@ -37,7 +26,7 @@ def setDateilistePfad():
         DateiListe.config(state = DISABLED)
     labDateiListenPfad.config(text = FileListPath)
 
-
+#Pfad zur Tagliste setzen
 def setWordListPath():
     global WordListPath
     WordListPath = os.path.abspath(openFile())
@@ -46,56 +35,39 @@ def setWordListPath():
         TagListe.config(state = DISABLED)
     labWordListPath.config(text = WordListPath)
 
-
+#Pfad zum Quellordner der xml Dateien setzen
 def setSourceFolder():
     global sourceFolderPath
     sourceFolderPath = filedialog.askdirectory()
     #print("Source Folder: " + sourceFolderPath)
     labSourceFolder.config(text = sourceFolderPath)
 
-
+#Pfad zum Zielordner der annotierten xml Dateien setzen
 def setDestinationFolder():
     global destinationFolderPath
     destinationFolderPath = filedialog.askdirectory()
     #print("Destination Folder: " + destinationFolderPath)
     labDestinationFolder.config(text = destinationFolderPath)
 
-
-def printFileList():
-    with open(FileListPath, 'r', encoding = "utf8") as f:
-        DateiListe.insert(INSERT, f.read())
-        DateiListe.config(state = DISABLED)
-    
-
-#Text aus Tag-Liste einfügen
-def printWordList():
-    with open(WordListPath, 'r', encoding = "utf8") as f:
-        TagListe.insert(INSERT, f.read())
-        TagListe.config(state = DISABLED)
-
+#Hauptfunktion: Annotation starten
 def annotationStarten(FileListPath, WordListPath, destinationFolderPath, sourceFolderPath):
-    #print("Starting annotation:")
-    #print("FileListPath: " + FileListPath)
-    #print("WordListPath: " + WordListPath)
-    #print("SrcPath: " + sourceFolderPath)
-    #print("DestPath: " + destinationFolderPath)
 
     ###########################################################
     #Backups anlegen
-    def BackupXML(ListFilename):
-        import shutil #Bibliothek zum Dateien kopieren
-        fileList = open(ListFilename, 'r', encoding = "utf8").read().splitlines()
-        for line in fileList:
-            shutil.copyfile((line+".xml"),(line+".xml.backup"))
+    # def BackupXML(ListFilename):
+    #     import shutil #Bibliothek zum Dateien kopieren
+    #     fileList = open(ListFilename, 'r', encoding = "utf8").read().splitlines()
+    #     for line in fileList:
+    #         shutil.copyfile((line+".xml"),(line+".xml.backup"))
     ###########################################################
 
     ###########################################################
     #Backups einspielen (nur fürs Testen)
-    def restoreXMLBackups(ListFilename):
-        import shutil #Bibliothek zum Dateien kopieren
-        fileList = open(ListFilename, 'r', encoding = "utf8").read().splitlines()
-        for line in fileList:
-            shutil.copyfile((line+".xml.backup"),(line+".xml"))
+    # def restoreXMLBackups(ListFilename):
+    #     import shutil #Bibliothek zum Dateien kopieren
+    #     fileList = open(ListFilename, 'r', encoding = "utf8").read().splitlines()
+    #     for line in fileList:
+    #         shutil.copyfile((line+".xml.backup"),(line+".xml"))
     ###########################################################
 
     ###########################################################
@@ -148,10 +120,12 @@ def annotationStarten(FileListPath, WordListPath, destinationFolderPath, sourceF
                 filedata = filedata.replace(" " + currWord + "!", (" <term key=\"" + currTag + "\">"+ currWord + "</term>!"))
                 #e) von einem Fragezeichen
                 filedata = filedata.replace(" " + currWord + "?", (" <term key=\"" + currTag + "\">"+ currWord + "</term>?"))
-                
+        
+        #Checken, ob Zielordner existiert, sonst anlegen
         if os.path.exists(destinationFolderPath) == False:
             os.makedirs(destinationFolderPath)
         
+        #Annotierte Dateien schreiben
         if os.name == "nt":
             with open(destinationFolderPath  + "\\" +  currFile + ".xml", "w", encoding = "utf8") as file:
                 file.write(filedata)
@@ -170,13 +144,10 @@ mainWindow.minsize(width = 800, height = 800) #Mindestgrößen
 #root.maxsize(width = 1000, height = 750) #Maximalgrößen
 #mainWindow.resizable(width = False, height = False) #Sperre Veränderbarkeit der Größe
 
-#Scrollbar
-S = Scrollbar(mainWindow)
-
 FileListPath = "Keine Dateiliste ausgewählt"
 WordListPath = "Keine Tagliste ausgewählt"
-sourceFolderPath="Kein Quellordner ausgewählt"
-destinationFolderPath="Kein Zielordner ausgewählt"
+sourceFolderPath = "Kein Quellordner ausgewählt"
+destinationFolderPath = "Kein Zielordner ausgewählt"
 
 #Anzeige der ausgewählten Dateien
 global labDateiListenPfad
@@ -191,7 +162,7 @@ BeschreibungAllgemein = tk.Label(mainWindow, text = "Die beiden Spalten zeigen d
 
 BeschreibungDateiliste = tk.Label(mainWindow, text = "In diese Liste müssen die zu annotierenden Dateien in einzelnen Zeilen, ohne Dateiendung (d.h. nur die ID) eingetragen werden.", wraplength=400,justify=LEFT)
 
-BeschreibungTagliste = tk.Label(mainWindow, text = "In die Tagliste müssen die Tags und dazugehörigen zu markierenden Worte wie folgt eingetragen werden:\n Das # markiert ein Schlagwort, alle bis zum nächsten # folgenden Worte werden mit diesem Annotiert. Es werden *nur* die angegebenen Schreibweisen annotiert, keine Abwandlungen davon (d.h. Pause != Pausen). Sobald das nächste # folgt, wird ein neues Tag annotiert.", wraplength=400,justify=LEFT)
+BeschreibungTagliste = tk.Label(mainWindow, text = "In die Tagliste müssen die Tags und dazugehörigen zu markierenden Worte in einzelnen Zeilen wie folgt eingetragen werden:\n Das # markiert ein Schlagwort, alle bis zum nächsten # folgenden Worte werden mit diesem annotiert. Es werden *nur* die angegebenen Schreibweisen annotiert, keine Abwandlungen davon (d.h. Pause != Pausen). Sobald das nächste # folgt, wird ein neues Tag annotiert.", wraplength=400,justify=LEFT)
 
 #Button: Dateiliste auswählen
 btnDateiliste = tk.Button(mainWindow, text = "Dateiliste auswählen", command = lambda: [setDateilistePfad()])
@@ -222,6 +193,7 @@ btnAbbrechen = tk.Button(mainWindow, text="Schließen", command = close_window)
 mainWindow.columnconfigure(0, weight = 1)
 mainWindow.columnconfigure(1, weight = 1)
 
+#Widgets anordnen
 BeschreibungAllgemein.grid(column = 0, row = 0, padx=5, pady=5, columnspan=2)
 
 BeschreibungDateiliste.grid(column = 0, row = 1, padx=5, pady=5)
