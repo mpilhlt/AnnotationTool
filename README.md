@@ -4,5 +4,10 @@ The **AnnotationTool** is annotating XML files with tags according to the TEI XM
 **Windows:**
 https://github.com/bspendrin/AnnotationTool/tree/main/build/windows
 **Linux:**
+https://github.com/bspendrin/AnnotationTool/tree/main/build/linux
 **MacOS:**
 https://github.com/bspendrin/AnnotationTool/tree/main/build/macos
+
+#Example Files
+You can find example files from the project here:
+https://github.com/bspendrin/AnnotationTool/tree/main/examples
