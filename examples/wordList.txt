@@ -1,0 +1,14 @@
+#Personen
+Arbeiter
+Meister
+Werkmeister
+Angestellte
+Angestellter
+Arbeiterin
+#Pause
+Pause
+Pausen
+Vesperpause
+Mittagspause
+Arbeitspause
+Arbeitspausen
