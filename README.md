@@ -9,7 +9,7 @@ Not available yet.
 **MacOS:**
 https://github.com/bspendrin/AnnotationTool/tree/main/build/macos  
 
-#ToDo
+# ToDo
 - add @resp/@cert attributes for automated annotations
 - tag words containing linebreaks
 
