@@ -6,9 +6,12 @@ The **AnnotationTool** is annotating XML files with tags according to the TEI XM
 https://github.com/bspendrin/AnnotationTool/tree/main/build/windows  
 **Linux:**
 Not available yet.
-https://github.com/bspendrin/AnnotationTool/tree/main/build/linux  
 **MacOS:**
 https://github.com/bspendrin/AnnotationTool/tree/main/build/macos  
+
+#ToDo
+- add @resp/@cert attributes for automated annotations
+- tag words containing linebreaks
 
 # Example Files
 You can find example files from the project here:  
