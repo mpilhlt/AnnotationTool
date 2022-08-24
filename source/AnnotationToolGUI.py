@@ -331,6 +331,7 @@ btnAbbrechen = tk.Button(tabAnnotation, text="Schließen", command = close_windo
 
 ################################################################################
 ### Manuelle Transkription
+#TODO: Keep indentation of original TEI XML file
 labXMLmanualDescr = tk.Label(tabXMLmanual, text = "Hier können Quellen manuell annotiert werden. Diese Funktion ist insbesondere für die Quellen der DMZ gedacht.", wraplength=800,justify=LEFT)
 labXMLmanualDescr.grid(row = 0, column = 0, padx = 5, pady = 5, columnspan= 2)
 
@@ -415,12 +416,15 @@ def saveXMLManual():
     SHORTTITLE = SHORTTITLEbox.get()
     TITLE = TITLEbox.get()
 
-    #replace linebreaks in SRCTEXT with XML linebreaks (depending on OS!)
+    #replace linebreaks, and symbol etc in SRCTEXT with XML linebreaks (depending on OS!)
     SRCTEXT = SRCTEXTbox.get('1.0', tk.END)
     if os.name == "posix":
-        SRCTEXT = SRCTEXT.replace("\n", "<lb/>")
+        SRCTEXT = SRCTEXT.replace("\n", "<lb/>\n")
+        SRCTEXT = SRCTEXT.replace("&", "&amp;")
     elif os.name == "nt":
-        SRCTEXT = SRCTEXT.replace("\r\n","<lb/>")
+        SRCTEXT = SRCTEXT.replace("\r\n","<lb/>\r\n")
+        SRCTEXT = SRCTEXT.replace("&", "&amp;")
+
     
     #Open XML Vorlage file
     with open(XMLVorlagePath, "r", encoding = "utf8") as file:
