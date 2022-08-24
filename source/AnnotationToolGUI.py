@@ -8,15 +8,13 @@ from tkinter import Grid
 from tkinter import filedialog
 from tkinter import messagebox
 import shutil
+from tkinter import scrolledtext
 import paramiko
 from paramiko import SSHClient 
-
+from datetime import datetime
+import re
 from pdf2image import convert_from_path
-
 import os
-
-import re #Library für RegEx
-
 class MySFTPClient(paramiko.SFTPClient):
     def put_dir(self, source, target):
         ''' Uploads the contents of the source directory to the target path. The
@@ -138,8 +136,16 @@ def f_regex_ersetzung(filedata, currTag, currWord):
     filedata = filedata.replace(" " + currWord + "!", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>!"))
     #e) von einem Fragezeichen
     filedata = filedata.replace(" " + currWord + "?", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>?"))
+
     ######Ersetzungen mit Linebreaks
     #Pattern erzeugen, das ersetzt werden soll: space + currWord + space --> und irgendwo da drin kann ein Ausdruck der Form <lb break="no"\n*\s* facs=(.*)"/> liegen
+
+    # Fall A: Linebreak im Wort "Maschine"
+    # Ma<lb break="no"
+    #           facs="#facs_3_l118" n="N000"/>schine
+    #Regex dafür: <lb break="no"\n*\s* facs=(.*)"/>
+
+
 
     #baue tmpString space+currWord+space
     #gehe tmpString durch: wenn zwischen space+1. Buchstaben, 1./2. Buchstaben, etc. ein lb kommt --> ersetzen
@@ -276,12 +282,9 @@ tabControl.add(tabXMLmanual, text = "Manuelle Transkription in XML")
 
 tabControl.pack(expand=1, fill="both")
 
-ttk.Label(tabAnnotation, text="Welcome to GeeksForGeeks").grid(column=0, row=0, padx=30, pady=30)
-ttk.Label(tabSRCconvert, text="Hier kann man Quellen konvertieren - von PDF in Einzelbilder.").grid(column=0, row=0, columnspan = 2, padx=30, pady=30)
-ttk.Label(tabXMLmanual, text="Hier kann man Quellen manuell in TEI XML transkribieren.").grid(column=0, row=0, padx=30, pady=30)
-
-
-
+#ttk.Label(tabAnnotation, text="Welcome to GeeksForGeeks").grid(column=0, row=0, padx=30, pady=30)
+#ttk.Label(tabSRCconvert, text="Hier kann man Quellen konvertieren - von PDF in Einzelbilder.").grid(column=0, row=0, columnspan = 2, padx=30, pady=30)
+#ttk.Label(tabXMLmanual, text="Hier kann man Quellen manuell in TEI XML transkribieren.").grid(column=0, row=0, padx=30, pady=30)
 
 FileListPath = "Keine Dateiliste ausgewählt"
 WordListPath = "Keine Tagliste ausgewählt"
@@ -327,6 +330,130 @@ btnAnnotieren = tk.Button(tabAnnotation, text="Annotation starten", command = la
 btnAbbrechen = tk.Button(tabAnnotation, text="Schließen", command = close_window)
 
 ################################################################################
+### Manuelle Transkription
+labXMLmanualDescr = tk.Label(tabXMLmanual, text = "Hier können Quellen manuell annotiert werden. Diese Funktion ist insbesondere für die Quellen der DMZ gedacht.", wraplength=800,justify=LEFT)
+labXMLmanualDescr.grid(row = 0, column = 0, padx = 5, pady = 5, columnspan= 2)
+
+def setXMLDestinationFolder():
+    global XMLdestinationFolderPath
+    XMLdestinationFolderPath = filedialog.askdirectory()
+    #print("Destination Folder: " + destinationFolderPath)
+    labXMLDestinationFolder.config(text = XMLdestinationFolderPath)
+
+btnChooseXMLDestFolder = tk.Button(tabXMLmanual, text = "Exportordner auswählen", command = lambda: [setXMLDestinationFolder()])
+btnChooseXMLDestFolder.grid(row = 1, column = 1, padx = 5, pady = 5)
+
+global XMLlabDestinationFolder
+labXMLDestinationFolder = tk.Label(tabXMLmanual, text = "")
+labXMLDestinationFolder.grid(row = 1, column = 0, padx = 5, pady = 5)
+
+# 2. Daten der Quelle eingeben
+labSRCID = tk.Label(tabXMLmanual, text = "Quellen-ID:", justify = LEFT)
+labSRCID.grid(row = 2, column = 0, padx = 5, pady = 5)
+SRCIDbox = Entry(tabXMLmanual)
+SRCIDbox.insert(END, "99999") #default value
+SRCIDbox.grid(row = 2, column = 1, padx = 5, pady = 5)
+
+labWHEN = tk.Label(tabXMLmanual, text = "Datum:", justify = LEFT)
+labWHEN.grid(row = 3, column = 0, padx = 5, pady = 5)
+WHENlabel = tk.Label(tabXMLmanual, text = datetime.now().strftime("%Y-%m-%d+%H:%M"), justify = LEFT)
+WHENlabel.grid(row = 3, column = 1, padx = 5, pady = 5)
+
+labSRCYEAR = tk.Label(tabXMLmanual, text = "Jahr der Quelle:", justify = LEFT)
+labSRCYEAR.grid(row = 4, column = 0, padx = 5, pady = 5)
+SRCYEARbox = Entry(tabXMLmanual)
+SRCYEARbox.insert(END, "9999") #default value
+SRCYEARbox.grid(row = 4, column = 1, padx = 5, pady = 5)
+
+labSRCBIBL = tk.Label(tabXMLmanual, text = "Quellennachweis (inkl. Seite):", justify = LEFT)
+labSRCBIBL.grid(row = 5, column = 0, padx = 5, pady = 5)
+SRCBIBLbox = Entry(tabXMLmanual)
+SRCBIBLbox.insert(END, "Beispielzeitschrift, Ausgabe 9999, 01.01.9999, S. 99") #default value
+SRCBIBLbox.grid(row = 5, column = 1, padx = 5, pady = 5)
+
+labSHORTTITLE = tk.Label(tabXMLmanual, text = "Kurztitel (AO_FIRMA_ORT_JAHR):", justify = LEFT)
+labSHORTTITLE.grid(row = 6, column = 0, padx = 5, pady = 5)
+SHORTTITLEbox = Entry(tabXMLmanual)
+SHORTTITLEbox.insert(END, "AO_Beispielfirma_Beispielort_9999") #default value
+SHORTTITLEbox.grid(row = 6, column = 1, padx = 5, pady = 5)
+
+labTITLE = tk.Label(tabXMLmanual, text = "Offizieller Titel:", justify = LEFT)
+labTITLE.grid(row = 7, column = 0, padx = 5, pady = 5)
+TITLEbox = Entry(tabXMLmanual)
+TITLEbox.insert(END, "Arbeitsordnung der Beispielfirma am Beispielort vom 1.1.9999") #default value
+TITLEbox.grid(row = 7, column = 1, padx = 5, pady = 5)
+
+labSRCTEXT = tk.Label(tabXMLmanual, text = "Text der Quelle:", justify = LEFT)
+labSRCTEXT.grid(row = 8, column = 0, padx = 5, pady = 5, columnspan=2)
+SRCTEXTbox = scrolledtext.ScrolledText(tabXMLmanual, wrap=tk.WORD, width=100, height=20)
+SRCTEXTbox.grid(row = 9, column = 0, padx = 5, pady = 5, columnspan=2)
+
+#Button um XML Vorlagedatei auszuwählen
+labXMLVorlage = tk.Label(tabXMLmanual, text = "", justify = LEFT)
+labXMLVorlage.grid(row = 10, column = 0, padx = 5, pady = 5)
+
+def setXMLVorlage():
+    global XMLVorlagePath
+    global XMLVorlageText
+    XMLVorlagePath = filedialog.askopenfilename()
+    labXMLVorlage.config(text = XMLVorlagePath)
+
+btnChooseXMLVorlage = tk.Button(tabXMLmanual, text = "XML-Vorlage wählen", command = lambda: [setXMLVorlage()])
+btnChooseXMLVorlage.grid(row = 10, column = 1, padx = 5, pady = 5)
+
+
+# 4. Speichern-Button!
+btnSaveXMLManual = tk.Button(tabXMLmanual, text = "Speichern", command = lambda: [saveXMLManual()])
+btnSaveXMLManual.grid(row = 11, column = 0, padx = 5, pady = 5, columnspan=2)
+
+def saveXMLManual():
+    #1. Get all the data from entry fields
+    SRCID = SRCIDbox.get()
+    WHEN = WHENlabel.cget("text")
+    SRCYEAR = SRCYEARbox.get()
+    SRCBIBL = SRCBIBLbox.get()
+    SHORTTITLE = SHORTTITLEbox.get()
+    TITLE = TITLEbox.get()
+
+    #replace linebreaks in SRCTEXT with XML linebreaks (depending on OS!)
+    SRCTEXT = SRCTEXTbox.get('1.0', tk.END)
+    if os.name == "posix":
+        SRCTEXT = SRCTEXT.replace("\n", "<lb/>")
+    elif os.name == "nt":
+        SRCTEXT = SRCTEXT.replace("\r\n","<lb/>")
+    
+    #Open XML Vorlage file
+    with open(XMLVorlagePath, "r", encoding = "utf8") as file:
+        XMLVorlageText = file.read()
+    #4. replace variables in XML data
+    XMLVorlageText = XMLVorlageText.replace("$SRCID", SRCID)
+    XMLVorlageText = XMLVorlageText.replace("$WHEN", WHEN)
+    XMLVorlageText = XMLVorlageText.replace("$SRCYEAR", SRCYEAR)
+    XMLVorlageText = XMLVorlageText.replace("$SRCBIBL", SRCBIBL)
+    XMLVorlageText = XMLVorlageText.replace("$SHORTTITLE", SHORTTITLE)
+    XMLVorlageText = XMLVorlageText.replace("$TITLE", TITLE)
+    XMLVorlageText = XMLVorlageText.replace("$SRCTEXT", SRCTEXT)
+
+    #5. Write new XML File for current source
+    #open text file
+    if os.name == "posix":
+        newXMLSource = open((XMLdestinationFolderPath + "/" + SRCID + ".xml"), "w")
+    elif os.name == "nt":
+        newXMLSource = open((XMLdestinationFolderPath + "\\" + SRCID + ".xml"), "w")
+    #write string to file
+    newXMLSource.write(XMLVorlageText)
+    #close file
+    newXMLSource.close()
+
+# $SRCID: 00123
+# $WHEN: YYYY-MM-DD+HH:MM
+# $SRCYEAR: YYYY
+# $SRCBIBL: Quellennachweis
+# $SHORTTITLE: AO_…. —> Kurztitel
+# $TITLE: Musterarbeitsordnung…
+# $SRCTEXT
+
+################################################################################
 ### PDFs zu Einzelbildern machen
 def fktCONVpdf2img():
     currPDF = convert_from_path(pdfSRCpath)
@@ -363,8 +490,6 @@ def fktCONVpdf2img():
             currPDF[i].save(os.path.dirname(pdfSRCpath) + "/" + pdfFILEname + "/input/" + pdfFILEname[:5] + "_" + str(i+1).zfill(4) +".jpg", "JPEG")
         elif os.name == "nt":
             currPDF[i].save(os.path.dirname(pdfSRCpath) + "\\" + pdfFILEname + "\\input\\" + pdfFILEname[:5] + "_" + str(i+1).zfill(4) +".jpg", "JPEG")
-
-
 
 #Pfad zum Quellordner der xml Dateien setzen
 def setPDFsrcPath():

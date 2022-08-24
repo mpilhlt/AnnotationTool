@@ -2,12 +2,12 @@
 <?xml-model href="http://www.tei-c.org/release/xml/tei/custom/schema/relaxng/tei_all.rng" type="application/xml" schematypens="http://relaxng.org/ns/structure/1.0"?>
 <?xml-model href="http://www.tei-c.org/release/xml/tei/custom/schema/relaxng/tei_all.rng" type="application/xml" schematypens="http://purl.oclc.org/dsdl/schematron"?>
 <?teipublisher template="view-grid.html" view="single"?>
-<TEI xmlns="http://www.tei-c.org/ns/1.0" xml:id="NSRMI_00014">
+<TEI xmlns="http://www.tei-c.org/ns/1.0" xml:id="NSRMI_99999">
     <teiHeader>
         <fileDesc>
             <titleStmt>
-                <title type="short">AO_Muster_1920</title>
-                <title type="main">Musterarbeitsordnung für Arbeiter</title>
+                <title type="short">AO_Beispielfirma_Beispielort_9999</title>
+                <title type="main">Arbeitsordnung der Beispielfirma am Beispielort vom 1.1.9999</title>
                 <author/>
             
                 <editor xml:id="PC" role="#scholarly">
@@ -49,7 +49,7 @@
 
             <editionStmt>
                 <edition n="1.0.0">
-                    Complete digital edition, <date type="digitizedEd" when="2022-01-28+01:00">2022-01-28+01:00</date>.
+                    Complete digital edition, <date type="digitizedEd" when="2022-08-24+10:24">2022-08-24+10:24</date>.
                 </edition>
             </editionStmt>
 
@@ -72,7 +72,7 @@
                             <ref target="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International (CC BY 4.0)</ref>.</p>
                     </licence>
                 </availability>
-                <date type="digitizedEd" when="2022-01-28+01:00">2022-01-28+01:00</date>
+                <date type="digitizedEd" when="2022-08-24+10:24">2022-08-24+10:24</date>
             </publicationStmt>
 
             <seriesStmt xml:id="seriesStmt">
@@ -84,8 +84,8 @@
             <sourceDesc>
                 <bibl>
                     
-                    <date when="1920">1920</date>
-                    <note>According to: <bibl>Zentralblatt für das Deutsche Reich 1920 Nr. 45, S. 1351-1357.</bibl></note>
+                    <date when="9999">9999</date>
+                    <note>According to: <bibl>Beispielzeitschrift, Ausgabe 9999, 01.01.9999, S. 99.</bibl></note>
                 </bibl>
                 
                 
@@ -114,7 +114,7 @@
 
         <revisionDesc>
             <listChange>
-                <change when="2022-01-28+01:00" who="#auto #AW">Compile TEI from PageXML sources</change>
+                <change when="2022-08-24+10:24" who="#auto #AW">Compile TEI from PageXML sources</change>
             </listChange>
         </revisionDesc>
     </teiHeader>
@@ -123,9 +123,7 @@
         <body>
             
             <p>
-                
-                
-                TEST
+                Blabla.<lb/>Bla.<lb/><lb/>Noch ein Absatz. Bla.<lb/>
             </p>
             
         </body>
