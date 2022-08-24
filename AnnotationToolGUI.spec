@@ -6,7 +6,7 @@ block_cipher = None
 
 a = Analysis(
     ['E:\\projects\\AnnotationTool\\source\\AnnotationToolGUI.py'],
-    pathex=['E:\\projects\\AnnotationTool\\build\\windows'],
+    pathex=[],
     binaries=[],
     datas=[],
     hiddenimports=[],
