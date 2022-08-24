@@ -15,6 +15,8 @@ from datetime import datetime
 import re
 from pdf2image import convert_from_path
 import os
+import fitz  # PyMuPDF, imported as fitz for backward compatibility reasons
+
 class MySFTPClient(paramiko.SFTPClient):
     def put_dir(self, source, target):
         ''' Uploads the contents of the source directory to the target path. The
@@ -469,6 +471,11 @@ def fktCONVpdf2img():
     #Ordnerstruktur anlegen
     pdfFOLDERname = os.path.dirname(pdfSRCpath)
 
+    file_path = pdfSRCpath
+    doc = fitz.open(file_path)  # open document
+
+    
+
     #Unterscheidung Windows/POSIX
     if os.name == "posix":
         if os.path.exists(os.path.dirname(pdfSRCpath) + "/" + pdfFILEname) == False:
@@ -491,12 +498,15 @@ def fktCONVpdf2img():
             #Funktion erneut aufrufen
             fktCONVpdf2img()
 
-    for i in range(len(currPDF)):
-        if os.name == "posix":
-        #BEnnennt die Seiten: ID (5 Stellen) _ 0001, 0002, etc.
-            currPDF[i].save(os.path.dirname(pdfSRCpath) + "/" + pdfFILEname + "/input/" + pdfFILEname[:5] + "_" + str(i+1).zfill(4) +".jpg", "JPEG")
-        elif os.name == "nt":
-            currPDF[i].save(os.path.dirname(pdfSRCpath) + "\\" + pdfFILEname + "\\input\\" + pdfFILEname[:5] + "_" + str(i+1).zfill(4) +".jpg", "JPEG")
+    for page in doc:
+        pix = page.get_pixmap()  # render page to an image
+        pix.save(f"page_{i}.png")
+#    for i in range(len(currPDF)):
+#        if os.name == "posix":
+#        #BEnnennt die Seiten: ID (5 Stellen) _ 0001, 0002, etc.
+#            currPDF[i].save(os.path.dirname(pdfSRCpath) + "/" + pdfFILEname + "/input/" + pdfFILEname[:5] + "_" + str(i+1).zfill(4) +".jpg", "JPEG")
+#        elif os.name == "nt":
+#            currPDF[i].save(os.path.dirname(pdfSRCpath) + "\\" + pdfFILEname + "\\input\\" + pdfFILEname[:5] + "_" + str(i+1).zfill(4) +".jpg", "JPEG")
 
 #Pfad zum Quellordner der xml Dateien setzen
 def setPDFsrcPath():
