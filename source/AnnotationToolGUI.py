@@ -16,6 +16,7 @@ import re
 from pdf2image import convert_from_path
 import os
 import fitz  # PyMuPDF, imported as fitz for backward compatibility reasons
+from pdf2jpg import pdf2jpg
 
 class MySFTPClient(paramiko.SFTPClient):
     def put_dir(self, source, target):
@@ -465,17 +466,14 @@ def saveXMLManual():
 ################################################################################
 ### PDFs zu Einzelbildern machen
 def fktCONVpdf2img():
-    currPDF = convert_from_path(pdfSRCpath)
+    currPDF = os.path.abspath(pdfSRCpath)
+    #currPDF = convert_from_path(pdfSRCpath)
     #dateinamen bekommen
     pdfFILEname = os.path.basename(pdfSRCpath).split(".")[0]
     #Ordnerstruktur anlegen
     pdfFOLDERname = os.path.dirname(pdfSRCpath)
 
-    file_path = pdfSRCpath
-    doc = fitz.open(file_path)  # open document
-
-    
-
+    #Ordner anlegen
     #Unterscheidung Windows/POSIX
     if os.name == "posix":
         if os.path.exists(os.path.dirname(pdfSRCpath) + "/" + pdfFILEname) == False:
@@ -498,14 +496,24 @@ def fktCONVpdf2img():
             #Funktion erneut aufrufen
             fktCONVpdf2img()
 
-    for page in doc:
-        pix = page.get_pixmap()  # render page to an image
-        pix.save(f"page_{i}.png")
-#    for i in range(len(currPDF)):
-#        if os.name == "posix":
+    #konvertieren
+    #open your file
+    #doc = fitz.open(pdfSRCpath)
+    #iterate through the pages of the document and create a RGB image of the page
+    for page in fitz.open(pdfSRCpath):
+        pix = page.get_pixmap()
+        if os.name == "posix":
+            index = "%i" % page.number
+            pix.save(os.path.dirname(pdfSRCpath) + "/" + pdfFILEname + "/input/" + pdfFILEname[0:5] + "-" + str(index).zfill(4) + ".png")
+        elif os.name == "nt":
+            index = "%i" % page.number
+            pix.save(os.path.dirname(pdfSRCpath) + "\\" + pdfFILEname + "\\input\\" + pdfFILEname[0:5] + "-" + str(index).zfill(4) + ".png" )
+
+
+        #if os.name == "posix":
 #        #BEnnennt die Seiten: ID (5 Stellen) _ 0001, 0002, etc.
 #            currPDF[i].save(os.path.dirname(pdfSRCpath) + "/" + pdfFILEname + "/input/" + pdfFILEname[:5] + "_" + str(i+1).zfill(4) +".jpg", "JPEG")
-#        elif os.name == "nt":
+        #elif os.name == "nt":
 #            currPDF[i].save(os.path.dirname(pdfSRCpath) + "\\" + pdfFILEname + "\\input\\" + pdfFILEname[:5] + "_" + str(i+1).zfill(4) +".jpg", "JPEG")
 
 #Pfad zum Quellordner der xml Dateien setzen
