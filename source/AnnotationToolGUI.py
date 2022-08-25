@@ -13,10 +13,10 @@ import paramiko
 from paramiko import SSHClient 
 from datetime import datetime
 import re
-from pdf2image import convert_from_path
+#from pdf2image import convert_from_path
 import os
 import fitz  # PyMuPDF, imported as fitz for backward compatibility reasons
-from pdf2jpg import pdf2jpg
+#from pdf2jpg import pdf2jpg
 
 class MySFTPClient(paramiko.SFTPClient):
     def put_dir(self, source, target):
