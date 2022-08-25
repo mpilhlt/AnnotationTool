@@ -424,12 +424,12 @@ def saveXMLManual():
     if os.name == "posix":
         SRCTEXT = SRCTEXT.replace("\n", "<lb/>\n")
         SRCTEXT = SRCTEXT.replace("&", "&amp;")
-        SRCTEXT = SRCTEXT.replace("§", "&sect;")
+        SRCTEXT = SRCTEXT.replace("§", "&#167;")
 
     elif os.name == "nt":
         SRCTEXT = SRCTEXT.replace("\r\n","<lb/>\r\n")
         SRCTEXT = SRCTEXT.replace("&", "&amp;")
-        SRCTEXT = SRCTEXT.replace("§", "&sect;")
+        SRCTEXT = SRCTEXT.replace("§", "&#167;")
 
     
     #Open XML Vorlage file
