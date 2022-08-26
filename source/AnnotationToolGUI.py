@@ -159,16 +159,12 @@ def f_regex_ersetzung(filedata, currTag, currWord):
 
 #def copyToServer(ip, port, user, pwd, localpath, remotepath):
 def copyToServer(HOST, PORT, USERNAME, PASSWORD, source_path, target_path):
-    #transport.load_system_host_keys()
-    #transport.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    print(str(HOST) + " | " + str(PORT) + " | " + str(USERNAME) + " | " + str(PASSWORD) + " | " + str(source_path) + " | " + str(target_path))
-    transport = paramiko.Transport(HOST, PORT)
-    #transport.connect(username=USERNAME, password=PASSWORD)
-    #sftp = MySFTPClient.from_transport(transport)
-    #sftp.mkdir(target_path, ignore_existing=True)
-    #sftp.put_dir(source_path, target_path)
-    #sftp.close()
-
+    transport = paramiko.Transport((HOST, PORT))
+    transport.connect(username=USERNAME, password=PASSWORD)
+    sftp = MySFTPClient.from_transport(transport)
+    sftp.mkdir(target_path, ignore_existing=True)
+    sftp.put_dir(source_path, target_path)
+    sftp.close()
 
 #Hauptfunktion: Annotation starten
 def mainFkt(FileListPath, WordListPath, destinationFolderPath, sourceFolderPath):
