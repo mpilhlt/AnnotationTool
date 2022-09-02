@@ -113,34 +113,34 @@ def f_ersetzung(filedata, currTag, currWord):
     #e) von einem Fragezeichen
     filedata = filedata.replace(" " + currWord + "?", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>?"))
 
-def f_regex_ersetzung(filedata, currTag, currWord):
-    #ersetzung mit regex
-    #AUs der Mail von Polina
-    # Fall A: Linebreak im Wort "Maschine"
-    # Ma<lb break="no"
-    #           facs="#facs_3_l118" n="N000"/>schine
-    #Regex dafür: <lb break="no"\n*\s* facs=(.*)"/>
+# def f_regex_ersetzung(filedata, currTag, currWord):
+#     #ersetzung mit regex
+#     #AUs der Mail von Polina
+#     # Fall A: Linebreak im Wort "Maschine"
+#     # Ma<lb break="no"
+#     #           facs="#facs_3_l118" n="N000"/>schine
+#     #Regex dafür: <lb break="no"\n*\s* facs=(.*)"/>
 
-    # Fall B: Seiten- und Pagebreak
-    # 3. des<pb break="no" facs="#facs_6" n="48" xml:id="img_0006"/><lb break="no" facs="#facs_6_l31" n="N000"/>fallsige
+#     # Fall B: Seiten- und Pagebreak
+#     # 3. des<pb break="no" facs="#facs_6" n="48" xml:id="img_0006"/><lb break="no" facs="#facs_6_l31" n="N000"/>fallsige
 
-    #resp = "auto" --> sind automatisch erstellte Tags; reicht das aber so?
-    #Richtiges Format für die Tags: <term key="Alkohol">alkoholischer Getränke</term>
-    #Annotiert wird:
-    #Diese Bedingungen sorgen gleichzeitig dafür, dass bereits annotierte Worte nicht doppelt annotiert werden!
-    #Wenn das Wort von Leerzeichen angeführt und gefolgt wird
-    #a) von einem Leerzeichen
-    filedata = filedata.replace(" " + currWord + " ", (" <term key=\"" + currTag + "\" resp=\"auto\">" + currWord + "</term> "))
-    # #b) von einem Komma
-    filedata = filedata.replace(" " + currWord + ",", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>,"))
-    #c) von einem Punkt (= Satzende)
-    filedata = filedata.replace(" " + currWord + ".", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>."))
-    #d) von einem Ausrufezeichen
-    filedata = filedata.replace(" " + currWord + "!", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>!"))
-    #e) von einem Fragezeichen
-    filedata = filedata.replace(" " + currWord + "?", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>?"))
+#     #resp = "auto" --> sind automatisch erstellte Tags; reicht das aber so?
+#     #Richtiges Format für die Tags: <term key="Alkohol">alkoholischer Getränke</term>
+#     #Annotiert wird:
+#     #Diese Bedingungen sorgen gleichzeitig dafür, dass bereits annotierte Worte nicht doppelt annotiert werden!
+#     #Wenn das Wort von Leerzeichen angeführt und gefolgt wird
+#     #a) von einem Leerzeichen
+#     filedata = filedata.replace(" " + currWord + " ", (" <term key=\"" + currTag + "\" resp=\"auto\">" + currWord + "</term> "))
+#     # #b) von einem Komma
+#     filedata = filedata.replace(" " + currWord + ",", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>,"))
+#     #c) von einem Punkt (= Satzende)
+#     filedata = filedata.replace(" " + currWord + ".", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>."))
+#     #d) von einem Ausrufezeichen
+#     filedata = filedata.replace(" " + currWord + "!", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>!"))
+#     #e) von einem Fragezeichen
+#     filedata = filedata.replace(" " + currWord + "?", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>?"))
 
-    ######Ersetzungen mit Linebreaks
+#     ######Ersetzungen mit Linebreaks
     #Pattern erzeugen, das ersetzt werden soll: space + currWord + space --> und irgendwo da drin kann ein Ausdruck der Form <lb break="no"\n*\s* facs=(.*)"/> liegen
 
     # Fall A: Linebreak im Wort "Maschine"
@@ -148,14 +148,21 @@ def f_regex_ersetzung(filedata, currTag, currWord):
     #           facs="#facs_3_l118" n="N000"/>schine
     #Regex dafür: <lb break="no"\n*\s* facs=(.*)"/>
 
-
-
     #baue tmpString space+currWord+space
     #gehe tmpString durch: wenn zwischen space+1. Buchstaben, 1./2. Buchstaben, etc. ein lb kommt --> ersetzen
+#    tmpString = 'an der Ma<lb break=\"no\"\r\n facs=\"#facs_3_l118\" n=\"N000\"/>schine darf keine'
+#    tmpString = currWord + " "
 
-    tmpString = " " + currWord + " "
-    for i in range(0,len(tmpString)):
-        print(i)
+    #1. finde Vorkommen
+
+    #for i in range(0,len(tmpString)):
+    #    re.sub(r'\w*<lb break="no"\n*\s* facs=(.*)"/>\w*', r'\1@', tmpString)
+    #    re.match(r'\w*<lb break="no"\n*\s* facs=(.*)"/>\w*', tmpString)
+
+        #tmpString = re.sub(r'\d', "UMBRUCH", tmpString)
+        #originalLineBreak = re.find()
+        #tmpString = re.sub(r'<lb break="no"\n*\s* facs=(.*)"/>', (" <term key=\"" + "CURRTAG" + "\" resp=\"auto\">" + currWord + "</term> "), tmpString)
+        #print(tmpString)
 
 #def copyToServer(ip, port, user, pwd, localpath, remotepath):
 def copyToServer(HOST, PORT, USERNAME, PASSWORD, source_path, target_path):
@@ -334,7 +341,7 @@ btnAbbrechen = tk.Button(tabAnnotation, text="Schließen", command = close_windo
 ################################################################################
 ### Manuelle Transkription
 #TODO: Keep indentation of original TEI XML file
-labXMLmanualDescr = tk.Label(tabXMLmanual, text = "Hier können Quellen manuell annotiert werden. Diese Funktion ist insbesondere für die Quellen der DMZ gedacht.", wraplength=800,justify=LEFT)
+labXMLmanualDescr = tk.Label(tabXMLmanual, text = "Hier können Quellen manuell annotiert werden. Diese Funktion ist insbesondere für die Quellen der DMZ sowie handschriftliche Quellen gedacht.", wraplength=800,justify=LEFT)
 labXMLmanualDescr.grid(row = 0, column = 0, padx = 5, pady = 5, columnspan= 2)
 
 def setXMLDestinationFolder():
@@ -454,14 +461,6 @@ def saveXMLManual():
     #close file
     newXMLSource.close()
 
-# $SRCID: 00123
-# $WHEN: YYYY-MM-DD+HH:MM
-# $SRCYEAR: YYYY
-# $SRCBIBL: Quellennachweis
-# $SHORTTITLE: AO_…. —> Kurztitel
-# $TITLE: Musterarbeitsordnung…
-# $SRCTEXT
-
 ################################################################################
 ### PDFs zu Einzelbildern machen
 def fktCONVpdf2img():
@@ -526,13 +525,15 @@ def setPDFsrcPath():
 labConvertSRC = tk.Label(tabSRCconvert, text = "Bitte die PDF-Datei auswählen")
 
 btnChosePDFSRC = tk.Button(tabSRCconvert, text = "PDF-Datei auswählen", command = lambda: [setPDFsrcPath()])
-btnChosePDFSRC.grid(row = 2, column = 2, padx = 5, pady = 5)
+btnChosePDFSRC.grid(row = 3, column = 2, padx = 5, pady = 5)
 
 labPDFSRCpath = tk.Label(tabSRCconvert)
-labPDFSRCpath.grid(row = 2, column = 1, padx = 5, pady = 5)
+labPDFSRCpath.grid(row = 3, column = 1, padx = 5, pady = 5)
 
+labConvertDescr = tk.Label(tabSRCconvert, text = "Hier können PDF-Dateien in Einzelbilder zerlegt werden, um sie dann per ocr4all verarbeiten zu können.")
+labConvertDescr.grid(row = 1, column = 1, columnspan = 2, padx = 5, pady = 5)
 btnConvertPDF = tk.Button(tabSRCconvert, text = "PDF konvertieren", command = lambda: [fktCONVpdf2img()])
-btnConvertPDF.grid(row = 3, column = 1, columnspan = 2, padx = 5, pady = 5)
+btnConvertPDF.grid(row = 4, column = 1, columnspan = 2, padx = 5, pady = 5)
 
 #global labSourceFolder
 #labSourceFolder = tk.Label(tabAnnotation, text = sourceFolderPath)
