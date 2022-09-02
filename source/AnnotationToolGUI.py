@@ -96,22 +96,22 @@ def readAnnotationData(WordListPath):
 ###########################################################
 
 #Ersetzung der Wörter
-def f_ersetzung(filedata, currTag, currWord):
-    #resp = "auto" --> sind automatisch erstellte Tags; reicht das aber so?
-    #Richtiges Format für die Tags: <term key="Alkohol">alkoholischer Getränke</term>
-    #Annotiert wird:
-    #Diese Bedingungen sorgen gleichzeitig dafür, dass bereits annotierte Worte nicht doppelt annotiert werden!
-    #Wenn das Wort von Leerzeichen angeführt und gefolgt wird
-    #a) von einem Leerzeichen
-    filedata = filedata.replace(" " + currWord + " ", (" <term key=\"" + currTag + "\" resp=\"auto\">" + currWord + "</term> "))
-    # #b) von einem Komma
-    filedata = filedata.replace(" " + currWord + ",", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>,"))
-    #c) von einem Punkt (= Satzende)
-    filedata = filedata.replace(" " + currWord + ".", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>."))
-    #d) von einem Ausrufezeichen
-    filedata = filedata.replace(" " + currWord + "!", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>!"))
-    #e) von einem Fragezeichen
-    filedata = filedata.replace(" " + currWord + "?", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>?"))
+# def f_ersetzung(filedata, currTag, currWord):
+#     #resp = "auto" --> sind automatisch erstellte Tags; reicht das aber so?
+#     #Richtiges Format für die Tags: <term key="Alkohol">alkoholischer Getränke</term>
+#     #Annotiert wird:
+#     #Diese Bedingungen sorgen gleichzeitig dafür, dass bereits annotierte Worte nicht doppelt annotiert werden!
+#     #a) von einem Leerzeichen
+#     filedata = filedata.replace(" " + currWord + " ", (" <term key=\"" + currTag + "\" resp=\"auto\">" + currWord + "</term> "))
+#     print(filedata)
+#     # #b) von einem Komma
+#     filedata = filedata.replace(" " + currWord + ",", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>,"))
+#     #c) von einem Punkt (= Satzende)
+#     filedata = filedata.replace(" " + currWord + ".", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>."))
+#     #d) von einem Ausrufezeichen
+#     filedata = filedata.replace(" " + currWord + "!", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>!"))
+#     #e) von einem Fragezeichen
+#     filedata = filedata.replace(" " + currWord + "?", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>?"))
 
 # def f_regex_ersetzung(filedata, currTag, currWord):
 #     #ersetzung mit regex
@@ -207,7 +207,7 @@ def mainFkt(FileListPath, WordListPath, destinationFolderPath, sourceFolderPath)
     for currFile in fileList:
         # Aktuelle Datei einlesen
         if os.name == "nt":
-            with open((sourceFolderPath + "\\" + currFile+".xml"), 'r', encoding = "utf8") as file :
+            with open((sourceFolderPath + "\\" + currFile + ".xml"), 'r', encoding = "utf8") as file :
                 filedata = file.read()
         elif os.name == "posix":
             #print("Curr File: " + sourceFolderPath  + "/" + currFile + ".xml")
@@ -224,21 +224,19 @@ def mainFkt(FileListPath, WordListPath, destinationFolderPath, sourceFolderPath)
                 currTag = currWord[1:] #Entferne das # (=den 1. char des strings)
             #Wenn nicht, ersetze aktuelles Wort mit dem Tag
             else:
-                f_ersetzung(filedata, currTag, currWord)
-                #Annotiert wird:
-                #Diese Bedingungen sorgen gleichzeitig dafür, dass bereits annotierte Worte nicht doppelt annotiert werden!
-                #Wenn das Wort von Leerzeichen angeführt und gefolgt wird
-                #a) von einem Leerzeichen
-                # filedata = filedata.replace(" " + currWord + " ", (" <term key=\"" + currTag + "\">" + currWord + "</term> "))
-                # #Richtiges Format für die Tags:                <term key="Alkohol">alkoholischer Getränke</term>
+                #print("annotating " + currWord + " with the tag #" + currTag)
+                #f_ersetzung(filedata, currTag, currWord)
+                filedata = filedata.replace(" " + currWord + " ", (" <term key=\"" + currTag + "\" resp=\"auto\">" + currWord + "</term> "))
+                #print(filedata)
                 # #b) von einem Komma
-                # filedata = filedata.replace(" " + currWord + ",", (" <term key=\"" + currTag + "\">"+ currWord + "</term>,"))
-                # #c) von einem Punkt (= Satzende)
-                # filedata = filedata.replace(" " + currWord + ".", (" <term key=\"" + currTag + "\">"+ currWord + "</term>."))
-                # #d) von einem Ausrufezeichen
-                # filedata = filedata.replace(" " + currWord + "!", (" <term key=\"" + currTag + "\">"+ currWord + "</term>!"))
-                # #e) von einem Fragezeichen
-                # filedata = filedata.replace(" " + currWord + "?", (" <term key=\"" + currTag + "\">"+ currWord + "</term>?"))
+                filedata = filedata.replace(" " + currWord + ",", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>,"))
+                #c) von einem Punkt (= Satzende)
+                filedata = filedata.replace(" " + currWord + ".", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>."))
+                #d) von einem Ausrufezeichen
+                filedata = filedata.replace(" " + currWord + "!", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>!"))
+                #e) von einem Fragezeichen
+                filedata = filedata.replace(" " + currWord + "?", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>?"))
+
         
         #Checken, ob Zielordner existiert, sonst anlegen
         if os.path.exists(destinationFolderPath) == False:
@@ -255,12 +253,6 @@ def mainFkt(FileListPath, WordListPath, destinationFolderPath, sourceFolderPath)
                 #print("Wrote File: " + destinationFolderPath + "/" + currFile + ".xml")
 
 
-
- 
-# def setPath():
-# #    global tmpPath
-#     tmpPath = os.path.abspath(openFile())
-#     return tmpPath
 
 ################################################################################
 ################################################################################
@@ -313,7 +305,7 @@ BeschreibungAllgemein = tk.Label(tabAnnotation, text = "Die beiden Spalten zeige
 
 BeschreibungDateiliste = tk.Label(tabAnnotation, text = "In diese Liste müssen die zu annotierenden Dateien in einzelnen Zeilen, ohne Dateiendung (d.h. nur die ID) eingetragen werden.", wraplength=400,justify=LEFT)
 
-BeschreibungTagliste = tk.Label(tabAnnotation, text = "In die Tagliste müssen die Tags und dazugehörigen zu markierenden Worte in einzelnen Zeilen wie folgt eingetragen werden:\n Das # markiert ein Schlagwort, alle bis zum nächsten # folgenden Worte werden mit diesem annotiert. Es werden *nur* die angegebenen Schreibweisen annotiert, keine Abwandlungen davon (d.h. Pause != Pausen). Sobald das nächste # folgt, wird ein neues Tag annotiert.", wraplength=400,justify=LEFT)
+BeschreibungTagliste = tk.Label(tabAnnotation, text = "In die Tagliste müssen die Tags und dazugehörigen zu markierenden Worte in einzelnen Zeilen wie folgt eingetragen werden:\n Das # markiert ein Schlagwort, alle bis zum nächsten # folgenden Worte werden mit diesem annotiert. Es werden *nur* die angegebenen Schreibweisen annotiert, keine Abwandlungen davon (d.h. Pause != Pausen). Sobald das nächste # folgt, wird ein neues Tag annotiert. \n \n ACHTUNG: Die Tagliste darf noch keine Leerzeilen enthalten. Das wird in einer folgenden Softwareversion gefixt.", wraplength=400,justify=LEFT)
 
 #Button: Dateiliste auswählen
 btnDateiliste = tk.Button(tabAnnotation, text = "Dateiliste auswählen", command = lambda: [setDateilistePfad()])
