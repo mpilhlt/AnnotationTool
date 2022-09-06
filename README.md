@@ -7,7 +7,7 @@ https://github.com/bspendrin/AnnotationTool/tree/main/build/windows
 **Linux:**
 Not available yet.
 **MacOS:**
-https://github.com/bspendrin/AnnotationTool/tree/main/build/macos  
+Not available yet.
 
 # ToDo
 - add @resp/@cert attributes for automated annotations
