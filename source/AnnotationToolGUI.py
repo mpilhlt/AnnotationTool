@@ -13,10 +13,28 @@ import paramiko
 from paramiko import SSHClient 
 from datetime import datetime
 import re
+from tkcalendar import Calendar
 #from pdf2image import convert_from_path
 import os
-import fitz  # PyMuPDF, imported as fitz for backward compatibility reasons
+#import fitz  # PyMuPDF, imported as fitz for backward compatibility reasons
 #from pdf2jpg import pdf2jpg
+
+##XML Vorlage aus externer Datei importieren
+from teivorlage import TEIVorlage
+
+import paramiko
+import pandas as pd
+from pandas_gbq import to_gbq
+from google.cloud import bigquery
+from subprocess import Popen, PIPE
+import subprocess
+from pathlib import Path
+import os
+import pysftp
+from stat import S_IMODE, S_ISDIR, S_ISREG
+
+import sys
+
 
 class MySFTPClient(paramiko.SFTPClient):
     def put_dir(self, source, target):
@@ -42,6 +60,9 @@ class MySFTPClient(paramiko.SFTPClient):
                 raise
 
 
+######
+
+
 def close_window():
     mainWindow.destroy()
 
@@ -61,33 +82,49 @@ def setPath():
 def setDateilistePfad():
     global FileListPath
     FileListPath = os.path.abspath(openFile())
+    #geöffnete FileList im entsprechenden Feld des Programmes anzeigen, damit man da manuell drin rumschreiben kann
     with open(FileListPath, 'r', encoding = "utf8") as f:
-        DateiListe.insert(INSERT, f.read())
-        DateiListe.config(state = DISABLED)
+        #DateiListe.insert(INSERT, f.read())
+        #DateiListe.config(state = DISABLED)
+        boxDateiliste.insert(INSERT, f.read())
     labDateiListenPfad.config(text = FileListPath)
+
 
 #Pfad zur Tagliste setzen
 def setWordListPath():
     global WordListPath
     WordListPath = os.path.abspath(openFile())
     with open(WordListPath, 'r', encoding = "utf8") as f:
-        TagListe.insert(INSERT, f.read())
-        TagListe.config(state = DISABLED)
+        #TagListe.insert(INSERT, f.read())
+        #TagListe.config(state = DISABLED)
+        boxWordlist.insert(INSERT, f.read())
+    labDateiListenPfad.config(text = FileListPath)
     labWordListPath.config(text = WordListPath)
 
 #Pfad zum Quellordner der xml Dateien setzen
 def setSourceFolder():
     global sourceFolderPath
+    global destinationFolderPath
+
     sourceFolderPath = filedialog.askdirectory()
-    #print("Source Folder: " + sourceFolderPath)
+    print("dest path: " + destinationFolderPath)
     labSourceFolder.config(text = sourceFolderPath)
+
+    #if sourceFolderPath == False: #wenn kein Source Ordner ausgewählt, default destination path setzen, der abhängt vom source path
+    if os.name == "nt":
+        destinationFolderPath = sourceFolderPath + "\\annotierte_TEI_Dateien"
+    elif os.name == "posix":
+        destinationFolderPath = sourceFolderPath + "/annotierte_TEI_Dateien"
+        print("dest folder:" + destinationFolderPath)
+    print("dest path: " + destinationFolderPath)
+    labDestinationFolder.config(text = destinationFolderPath)
 
 #Pfad zum Zielordner der annotierten xml Dateien setzen
 def setDestinationFolder():
     global destinationFolderPath
     destinationFolderPath = filedialog.askdirectory()
-    #print("Destination Folder: " + destinationFolderPath)
     labDestinationFolder.config(text = destinationFolderPath)
+    print("dest folder set specifically")
 
 ###########################################################
 #Einlesen von Tags und Wörtern, die getaggt werden sollen
@@ -95,114 +132,10 @@ def readAnnotationData(WordListPath):
     listOfWords = open(WordListPath, 'r', encoding = "utf8").read().splitlines()
 ###########################################################
 
-#Ersetzung der Wörter
-# def f_ersetzung(filedata, currTag, currWord):
-#     #resp = "auto" --> sind automatisch erstellte Tags; reicht das aber so?
-#     #Richtiges Format für die Tags: <term key="Alkohol">alkoholischer Getränke</term>
-#     #Annotiert wird:
-#     #Diese Bedingungen sorgen gleichzeitig dafür, dass bereits annotierte Worte nicht doppelt annotiert werden!
-#     #a) von einem Leerzeichen
-#     filedata = filedata.replace(" " + currWord + " ", (" <term key=\"" + currTag + "\" resp=\"auto\">" + currWord + "</term> "))
-#     print(filedata)
-#     # #b) von einem Komma
-#     filedata = filedata.replace(" " + currWord + ",", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>,"))
-#     #c) von einem Punkt (= Satzende)
-#     filedata = filedata.replace(" " + currWord + ".", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>."))
-#     #d) von einem Ausrufezeichen
-#     filedata = filedata.replace(" " + currWord + "!", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>!"))
-#     #e) von einem Fragezeichen
-#     filedata = filedata.replace(" " + currWord + "?", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>?"))
-
-# def f_regex_ersetzung(filedata, currTag, currWord):
-#     #ersetzung mit regex
-#     #AUs der Mail von Polina
-#     # Fall A: Linebreak im Wort "Maschine"
-#     # Ma<lb break="no"
-#     #           facs="#facs_3_l118" n="N000"/>schine
-#     #Regex dafür: <lb break="no"\n*\s* facs=(.*)"/>
-
-#     # Fall B: Seiten- und Pagebreak
-#     # 3. des<pb break="no" facs="#facs_6" n="48" xml:id="img_0006"/><lb break="no" facs="#facs_6_l31" n="N000"/>fallsige
-
-#     #resp = "auto" --> sind automatisch erstellte Tags; reicht das aber so?
-#     #Richtiges Format für die Tags: <term key="Alkohol">alkoholischer Getränke</term>
-#     #Annotiert wird:
-#     #Diese Bedingungen sorgen gleichzeitig dafür, dass bereits annotierte Worte nicht doppelt annotiert werden!
-#     #Wenn das Wort von Leerzeichen angeführt und gefolgt wird
-#     #a) von einem Leerzeichen
-#     filedata = filedata.replace(" " + currWord + " ", (" <term key=\"" + currTag + "\" resp=\"auto\">" + currWord + "</term> "))
-#     # #b) von einem Komma
-#     filedata = filedata.replace(" " + currWord + ",", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>,"))
-#     #c) von einem Punkt (= Satzende)
-#     filedata = filedata.replace(" " + currWord + ".", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>."))
-#     #d) von einem Ausrufezeichen
-#     filedata = filedata.replace(" " + currWord + "!", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>!"))
-#     #e) von einem Fragezeichen
-#     filedata = filedata.replace(" " + currWord + "?", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>?"))
-
-#     ######Ersetzungen mit Linebreaks
-    #Pattern erzeugen, das ersetzt werden soll: space + currWord + space --> und irgendwo da drin kann ein Ausdruck der Form <lb break="no"\n*\s* facs=(.*)"/> liegen
-
-    # Fall A: Linebreak im Wort "Maschine"
-    # Ma<lb break="no"
-    #           facs="#facs_3_l118" n="N000"/>schine
-    #Regex dafür: <lb break="no"\n*\s* facs=(.*)"/>
-
-    #baue tmpString space+currWord+space
-    #gehe tmpString durch: wenn zwischen space+1. Buchstaben, 1./2. Buchstaben, etc. ein lb kommt --> ersetzen
-#    tmpString = 'an der Ma<lb break=\"no\"\r\n facs=\"#facs_3_l118\" n=\"N000\"/>schine darf keine'
-#    tmpString = currWord + " "
-
-    #1. finde Vorkommen
-
-    #for i in range(0,len(tmpString)):
-    #    re.sub(r'\w*<lb break="no"\n*\s* facs=(.*)"/>\w*', r'\1@', tmpString)
-    #    re.match(r'\w*<lb break="no"\n*\s* facs=(.*)"/>\w*', tmpString)
-
-        #tmpString = re.sub(r'\d', "UMBRUCH", tmpString)
-        #originalLineBreak = re.find()
-        #tmpString = re.sub(r'<lb break="no"\n*\s* facs=(.*)"/>', (" <term key=\"" + "CURRTAG" + "\" resp=\"auto\">" + currWord + "</term> "), tmpString)
-        #print(tmpString)
-
-#def copyToServer(ip, port, user, pwd, localpath, remotepath):
-def copyToServer(HOST, PORT, USERNAME, PASSWORD, source_path, target_path):
-    transport = paramiko.Transport((HOST, PORT))
-    transport.connect(username=USERNAME, password=PASSWORD)
-    sftp = MySFTPClient.from_transport(transport)
-    sftp.mkdir(target_path, ignore_existing=True)
-    sftp.put_dir(source_path, target_path)
-    sftp.close()
-
-#Hauptfunktion: Annotation starten
-def mainFkt(FileListPath, WordListPath, destinationFolderPath, sourceFolderPath):
-
-    ###########################################################
-    #Backups anlegen
-    # def BackupXML(ListFilename):
-    #     import shutil #Bibliothek zum Dateien kopieren
-    #     fileList = open(ListFilename, 'r', encoding = "utf8").read().splitlines()
-    #     for line in fileList:
-    #         shutil.copyfile((line+".xml"),(line+".xml.backup"))
-    ###########################################################
-
-    ###########################################################
-    #Backups einspielen (nur fürs Testen)
-    # def restoreXMLBackups(ListFilename):
-    #     import shutil #Bibliothek zum Dateien kopieren
-    #     fileList = open(ListFilename, 'r', encoding = "utf8").read().splitlines()
-    #     for line in fileList:
-    #         shutil.copyfile((line+".xml.backup"),(line+".xml"))
-    ###########################################################
-
-    #Pfade für Dateien
-
-    #Nur im Testen: Backups wiederherstellen (später Backups anlegen!)
-    #restoreXMLBackups(FileListPath)
-    #BackupXML(FileListPath)
-
+###########################################################
+def AutoAnnotation(FileListPath, WordListPath, destinationFolderPath, sourceFolderPath):
     #Gehe alle Dateien aus der fileList durch
-    fileList = open(FileListPath, 'r', encoding = "utf8").read().splitlines()
-    #print(fileList)
+    fileList = boxDateiliste.get('1.0', tk.END).splitlines() #hole den aktuellen boxDateiliste, um den zu verarbeiten (beginnt beim ersten Zeichen, endet am Ende der Textbox; dann in Zeilen splitten)
 
     for currFile in fileList:
         # Aktuelle Datei einlesen
@@ -210,13 +143,17 @@ def mainFkt(FileListPath, WordListPath, destinationFolderPath, sourceFolderPath)
             with open((sourceFolderPath + "\\" + currFile + ".xml"), 'r', encoding = "utf8") as file :
                 filedata = file.read()
         elif os.name == "posix":
-            #print("Curr File: " + sourceFolderPath  + "/" + currFile + ".xml")
+            print("Curr File: " + sourceFolderPath  + "/" + currFile + ".xml")
             with open((sourceFolderPath  + "/" + currFile + ".xml"), 'r', encoding = "utf8") as file :
                 filedata = file.read()
 
         # Zeichenkette ersetzen
         ### Einlesen von Tags und Wörtern
-        wordList = open(WordListPath, 'r', encoding = "utf8").read().splitlines()
+        #wordList = open(WordListPath, 'r', encoding = "utf8").read().splitlines()
+
+        wordList = boxWordlist.get('1.0', tk.END).splitlines()
+
+
         #Gehe alle Wörter durch
         for currWord in wordList:
             #Wenn aktuelles Wort mit # beginnt, setze aktuelles Tag darauf
@@ -252,209 +189,80 @@ def mainFkt(FileListPath, WordListPath, destinationFolderPath, sourceFolderPath)
                 file.write(filedata)
                 #print("Wrote File: " + destinationFolderPath + "/" + currFile + ".xml")
 
+#     ######Ersetzungen mit Linebreaks
+    #Pattern erzeugen, das ersetzt werden soll: space + currWord + space --> und irgendwo da drin kann ein Ausdruck der Form <lb break="no"\n*\s* facs=(.*)"/> liegen
 
+    # Fall A: Linebreak im Wort "Maschine"
+    # Ma<lb break="no"
+    #           facs="#facs_3_l118" n="N000"/>schine
+    #Regex dafür: <lb break="no"\n*\s* facs=(.*)"/>
 
-################################################################################
-################################################################################
-################################################################################
-################################################################################
+    #baue tmpString space+currWord+space
+    #gehe tmpString durch: wenn zwischen space+1. Buchstaben, 1./2. Buchstaben, etc. ein lb kommt --> ersetzen
+#    tmpString = 'an der Ma<lb break=\"no\"\r\n facs=\"#facs_3_l118\" n=\"N000\"/>schine darf keine'
+#    tmpString = currWord + " "
+
+    #1. finde Vorkommen
+
+    #for i in range(0,len(tmpString)):
+    #    re.sub(r'\w*<lb break="no"\n*\s* facs=(.*)"/>\w*', r'\1@', tmpString)
+    #    re.match(r'\w*<lb break="no"\n*\s* facs=(.*)"/>\w*', tmpString)
+
+        #tmpString = re.sub(r'\d', "UMBRUCH", tmpString)
+        #originalLineBreak = re.find()
+        #tmpString = re.sub(r'<lb break="no"\n*\s* facs=(.*)"/>', (" <term key=\"" + "CURRTAG" + "\" resp=\"auto\">" + currWord + "</term> "), tmpString)
+        #print(tmpString)
+
+#def copyToServer(ip, port, user, pwd, localpath, remotepath):
+def copyToServer(HOST, PORT, USERNAME, PASSWORD, source_path, target_path):
+    transport = paramiko.Transport((HOST, PORT))
+    transport.connect(username=USERNAME, password=PASSWORD)
+    sftp = MySFTPClient.from_transport(transport)
+    sftp.mkdir(target_path, ignore_existing=True)
+    sftp.put_dir(source_path, target_path)
+    sftp.close()
+
 ################################################################################
 #Kreiert Fenster
 
 mainWindow = Tk()
-mainWindow.title("Annotations-Tool NsRdMi") #Fenstertitel
-mainWindow.geometry("1000x600") #Fenstergröße: Breite x Höhe
-mainWindow.minsize(width = 800, height = 800) #Mindestgrößen
-#root.maxsize(width = 1000, height = 750) #Maximalgrößen
-#mainWindow.resizable(width = False, height = False) #Sperre Veränderbarkeit der Größe
+mainWindow.title("AnnotationTool NsRdMi") #Fenstertitel
+mainWindow.geometry("1200x800") #Fenstergröße: Breite x Höhe
 
-tabControl = ttk.Notebook(mainWindow)
+#ttk.Notebook --> mehrere Reiter (Tabs) im Fenster
+tabControl = ttk.Notebook(mainWindow, width=2000, height=200)
+
 tabSRCconvert = ttk.Frame(tabControl)
 tabAnnotation = ttk.Frame(tabControl)
+tabOCRSRVdownload = ttk.Frame(tabControl)
 tabXMLmanual = ttk.Frame(tabControl)
 tabOCRSRVcopy = ttk.Frame(tabControl)
 
 
-tabControl.add(tabSRCconvert, text="Quellen konvertieren")
-#TODO: Import von CSV statt aus txt
-tabControl.add(tabAnnotation, text = "Quellen annotieren")
-tabControl.add(tabXMLmanual, text = "Manuelle Transkription in XML")
+################################################################################
+#Reihenfolge der Reiter im Programm
+tabControl.add(tabSRCconvert, text="PDF in Einzelbilder aufteilen")
+tabControl.add(tabOCRSRVcopy, text = "Einzelbilder auf OCR Server hochladen")
+tabControl.add(tabOCRSRVdownload, text = "Einzelbilder vom OCR Server runterladen")
+tabControl.add(tabAnnotation, text = "Quellen automatisch annotieren")
+tabControl.add(tabXMLmanual, text = "Quellen manuell transkribieren")
 
+#Einstellungen für die Reiter
+tabControl.pack(expand=True, fill=tk.BOTH)
 
-tabControl.pack(expand=1, fill="both")
-
-#ttk.Label(tabAnnotation, text="Welcome to GeeksForGeeks").grid(column=0, row=0, padx=30, pady=30)
-#ttk.Label(tabSRCconvert, text="Hier kann man Quellen konvertieren - von PDF in Einzelbilder.").grid(column=0, row=0, columnspan = 2, padx=30, pady=30)
-#ttk.Label(tabXMLmanual, text="Hier kann man Quellen manuell in TEI XML transkribieren.").grid(column=0, row=0, padx=30, pady=30)
-
-FileListPath = "Keine Dateiliste ausgewählt"
-WordListPath = "Keine Tagliste ausgewählt"
-sourceFolderPath = "Kein Quellordner ausgewählt"
-destinationFolderPath = "Kein Zielordner ausgewählt"
-
-#Anzeige der ausgewählten Dateien
-global labDateiListenPfad
-DateiListe = Text(tabAnnotation)
-labDateiListenPfad = tk.Label(tabAnnotation, text = FileListPath)
-
-global labWordListPath
-TagListe = Text(tabAnnotation)
-labWordListPath = tk.Label(tabAnnotation, text = WordListPath)
-
-BeschreibungAllgemein = tk.Label(tabAnnotation, text = "Die beiden Spalten zeigen die zu bearbeitenden Dateien links und die zu setzenden Tags und ihre dazugehörigen Signalworte rechts. \n Über die darunterstehenden Buttons können die jeweiligen Dateien sowie der Quell- und Zielordner angegeben werden.", wraplength=800, justify=LEFT)
-
-BeschreibungDateiliste = tk.Label(tabAnnotation, text = "In diese Liste müssen die zu annotierenden Dateien in einzelnen Zeilen, ohne Dateiendung (d.h. nur die ID) eingetragen werden.", wraplength=400,justify=LEFT)
-
-BeschreibungTagliste = tk.Label(tabAnnotation, text = "In die Tagliste müssen die Tags und dazugehörigen zu markierenden Worte in einzelnen Zeilen wie folgt eingetragen werden:\n Das # markiert ein Schlagwort, alle bis zum nächsten # folgenden Worte werden mit diesem annotiert. Es werden *nur* die angegebenen Schreibweisen annotiert, keine Abwandlungen davon (d.h. Pause != Pausen). Sobald das nächste # folgt, wird ein neues Tag annotiert. \n \n ACHTUNG: Die Tagliste darf noch keine Leerzeilen enthalten. Das wird in einer folgenden Softwareversion gefixt.", wraplength=400,justify=LEFT)
-
-#Button: Dateiliste auswählen
-btnDateiliste = tk.Button(tabAnnotation, text = "Dateiliste auswählen", command = lambda: [setDateilistePfad()])
-
-#Button: Tagliste auswählen
-btnWordList = tk.Button(tabAnnotation, text = "Tagliste auswählen", command = lambda: [setWordListPath()])
-
-#Button: Quellordner
-btnChooseSourceFolder = tk.Button(tabAnnotation, text = "Quellordner auswählen", command = lambda: [setSourceFolder()])
-global labSourceFolder
-labSourceFolder = tk.Label(tabAnnotation, text = sourceFolderPath)
-
-
-#Button: Zielordner
-btnChooseDestinationFolder = tk.Button(tabAnnotation, text = "Zielordner wählen", command = lambda: [setDestinationFolder()])
-global labDestinationFolder
-labDestinationFolder = tk.Label(tabAnnotation, text = destinationFolderPath)
-
-#Button, um die Annotation zu starten
-btnAnnotieren = tk.Button(tabAnnotation, text="Annotation starten", command = lambda: mainFkt(FileListPath, WordListPath, destinationFolderPath, sourceFolderPath))
-
-#Abbrechen-Button
-btnAbbrechen = tk.Button(tabAnnotation, text="Schließen", command = close_window)
 
 ################################################################################
-### Manuelle Transkription
-#TODO: Keep indentation of original TEI XML file
-labXMLmanualDescr = tk.Label(tabXMLmanual, text = "Hier können Quellen manuell annotiert werden. Diese Funktion ist insbesondere für die Quellen der DMZ sowie handschriftliche Quellen gedacht.", wraplength=800,justify=LEFT)
-labXMLmanualDescr.grid(row = 0, column = 0, padx = 5, pady = 5, columnspan= 2)
+"""
+PDFs zu Einzelbildern
+"""
 
-def setXMLDestinationFolder():
-    global XMLdestinationFolderPath
-    XMLdestinationFolderPath = filedialog.askdirectory()
-    #print("Destination Folder: " + destinationFolderPath)
-    labXMLDestinationFolder.config(text = XMLdestinationFolderPath)
+#Pfad zum Quellordner der PDF Dateien setzen
+def setPDFsrcPath():
+    #Pfad bekommen
+    global pdfSRCpath
+    pdfSRCpath = filedialog.askopenfilename()
+    labPDFSRCpath.config(text = pdfSRCpath) #Label ändern
 
-btnChooseXMLDestFolder = tk.Button(tabXMLmanual, text = "Exportordner auswählen", command = lambda: [setXMLDestinationFolder()])
-btnChooseXMLDestFolder.grid(row = 1, column = 1, padx = 5, pady = 5)
-
-global XMLlabDestinationFolder
-labXMLDestinationFolder = tk.Label(tabXMLmanual, text = "")
-labXMLDestinationFolder.grid(row = 1, column = 0, padx = 5, pady = 5)
-
-# 2. Daten der Quelle eingeben
-labSRCID = tk.Label(tabXMLmanual, text = "Quellen-ID:", justify = LEFT)
-labSRCID.grid(row = 2, column = 0, padx = 5, pady = 5)
-SRCIDbox = Entry(tabXMLmanual)
-SRCIDbox.insert(END, "99999") #default value
-SRCIDbox.grid(row = 2, column = 1, padx = 5, pady = 5)
-
-labWHEN = tk.Label(tabXMLmanual, text = "Datum:", justify = LEFT)
-labWHEN.grid(row = 3, column = 0, padx = 5, pady = 5)
-WHENlabel = tk.Label(tabXMLmanual, text = datetime.now().strftime("%Y-%m-%d+%H:%M"), justify = LEFT)
-WHENlabel.grid(row = 3, column = 1, padx = 5, pady = 5)
-
-labSRCYEAR = tk.Label(tabXMLmanual, text = "Jahr der Quelle:", justify = LEFT)
-labSRCYEAR.grid(row = 4, column = 0, padx = 5, pady = 5)
-SRCYEARbox = Entry(tabXMLmanual)
-SRCYEARbox.insert(END, "9999") #default value
-SRCYEARbox.grid(row = 4, column = 1, padx = 5, pady = 5)
-
-labSRCBIBL = tk.Label(tabXMLmanual, text = "Quellennachweis (inkl. Seite):", justify = LEFT)
-labSRCBIBL.grid(row = 5, column = 0, padx = 5, pady = 5)
-SRCBIBLbox = Entry(tabXMLmanual)
-SRCBIBLbox.insert(END, "Beispielzeitschrift, Ausgabe 9999, 01.01.9999, S. 99") #default value
-SRCBIBLbox.grid(row = 5, column = 1, padx = 5, pady = 5)
-
-labSHORTTITLE = tk.Label(tabXMLmanual, text = "Kurztitel (AO_FIRMA_ORT_JAHR):", justify = LEFT)
-labSHORTTITLE.grid(row = 6, column = 0, padx = 5, pady = 5)
-SHORTTITLEbox = Entry(tabXMLmanual)
-SHORTTITLEbox.insert(END, "AO_Beispielfirma_Beispielort_9999") #default value
-SHORTTITLEbox.grid(row = 6, column = 1, padx = 5, pady = 5)
-
-labTITLE = tk.Label(tabXMLmanual, text = "Offizieller Titel:", justify = LEFT)
-labTITLE.grid(row = 7, column = 0, padx = 5, pady = 5)
-TITLEbox = Entry(tabXMLmanual)
-TITLEbox.insert(END, "Arbeitsordnung der Beispielfirma am Beispielort vom 1.1.9999") #default value
-TITLEbox.grid(row = 7, column = 1, padx = 5, pady = 5)
-
-labSRCTEXT = tk.Label(tabXMLmanual, text = "Text der Quelle:", justify = LEFT)
-labSRCTEXT.grid(row = 8, column = 0, padx = 5, pady = 5, columnspan=2)
-SRCTEXTbox = scrolledtext.ScrolledText(tabXMLmanual, wrap=tk.WORD, width=100, height=20)
-SRCTEXTbox.grid(row = 9, column = 0, padx = 5, pady = 5, columnspan=2)
-
-#Button um XML Vorlagedatei auszuwählen
-labXMLVorlage = tk.Label(tabXMLmanual, text = "", justify = LEFT)
-labXMLVorlage.grid(row = 10, column = 0, padx = 5, pady = 5)
-
-def setXMLVorlage():
-    global XMLVorlagePath
-    global XMLVorlageText
-    XMLVorlagePath = filedialog.askopenfilename()
-    labXMLVorlage.config(text = XMLVorlagePath)
-
-btnChooseXMLVorlage = tk.Button(tabXMLmanual, text = "XML-Vorlage wählen", command = lambda: [setXMLVorlage()])
-btnChooseXMLVorlage.grid(row = 10, column = 1, padx = 5, pady = 5)
-
-
-# 4. Speichern-Button!
-btnSaveXMLManual = tk.Button(tabXMLmanual, text = "Speichern", command = lambda: [saveXMLManual()])
-btnSaveXMLManual.grid(row = 11, column = 0, padx = 5, pady = 5, columnspan=2)
-
-def saveXMLManual():
-    #1. Get all the data from entry fields
-    SRCID = SRCIDbox.get()
-    WHEN = WHENlabel.cget("text")
-    SRCYEAR = SRCYEARbox.get()
-    SRCBIBL = SRCBIBLbox.get()
-    SHORTTITLE = SHORTTITLEbox.get()
-    TITLE = TITLEbox.get()
-
-    #replace linebreaks, and symbol etc in SRCTEXT with XML linebreaks (depending on OS!)
-    SRCTEXT = SRCTEXTbox.get('1.0', tk.END)
-    if os.name == "posix":
-        SRCTEXT = SRCTEXT.replace("\n", "<lb/>\n")
-        SRCTEXT = SRCTEXT.replace("&", "&amp;")
-        SRCTEXT = SRCTEXT.replace("§", "&#167;")
-
-    elif os.name == "nt":
-        SRCTEXT = SRCTEXT.replace("\r\n","<lb/>\r\n")
-        SRCTEXT = SRCTEXT.replace("&", "&amp;")
-        SRCTEXT = SRCTEXT.replace("§", "&#167;")
-
-    
-    #Open XML Vorlage file
-    with open(XMLVorlagePath, "r", encoding = "utf8") as file:
-        XMLVorlageText = file.read()
-    #4. replace variables in XML data
-    XMLVorlageText = XMLVorlageText.replace("$SRCID", SRCID)
-    XMLVorlageText = XMLVorlageText.replace("$WHEN", WHEN)
-    XMLVorlageText = XMLVorlageText.replace("$SRCYEAR", SRCYEAR)
-    XMLVorlageText = XMLVorlageText.replace("$SRCBIBL", SRCBIBL)
-    XMLVorlageText = XMLVorlageText.replace("$SHORTTITLE", SHORTTITLE)
-    XMLVorlageText = XMLVorlageText.replace("$TITLE", TITLE)
-    XMLVorlageText = XMLVorlageText.replace("$SRCTEXT", SRCTEXT)
-
-    #5. Write new XML File for current source
-    #open text file
-    if os.name == "posix":
-        newXMLSource = open((XMLdestinationFolderPath + "/" + SRCID + ".xml"), "w")
-    elif os.name == "nt":
-        newXMLSource = open((XMLdestinationFolderPath + "\\" + SRCID + ".xml"), "w")
-    #write string to file
-    newXMLSource.write(XMLVorlageText)
-    #close file
-    newXMLSource.close()
-
-################################################################################
-### PDFs zu Einzelbildern machen
 def fktCONVpdf2img():
     currPDF = os.path.abspath(pdfSRCpath)
     #currPDF = convert_from_path(pdfSRCpath)
@@ -486,73 +294,41 @@ def fktCONVpdf2img():
             #Funktion erneut aufrufen
             fktCONVpdf2img()
 
-    #konvertieren
-    #open your file
-    #doc = fitz.open(pdfSRCpath)
-    #iterate through the pages of the document and create a RGB image of the page
-    for page in fitz.open(pdfSRCpath):
-        pix = page.get_pixmap()
-        if os.name == "posix":
-            index = "%i" % page.number
-            pix.save(os.path.dirname(pdfSRCpath) + "/" + pdfFILEname + "/input/" + pdfFILEname[0:5] + "-" + str(index).zfill(4) + ".png")
-        elif os.name == "nt":
-            index = "%i" % page.number
-            pix.save(os.path.dirname(pdfSRCpath) + "\\" + pdfFILEname + "\\input\\" + pdfFILEname[0:5] + "-" + str(index).zfill(4) + ".png" )
-
-
-        #if os.name == "posix":
-#        #BEnnennt die Seiten: ID (5 Stellen) _ 0001, 0002, etc.
-#            currPDF[i].save(os.path.dirname(pdfSRCpath) + "/" + pdfFILEname + "/input/" + pdfFILEname[:5] + "_" + str(i+1).zfill(4) +".jpg", "JPEG")
-        #elif os.name == "nt":
-#            currPDF[i].save(os.path.dirname(pdfSRCpath) + "\\" + pdfFILEname + "\\input\\" + pdfFILEname[:5] + "_" + str(i+1).zfill(4) +".jpg", "JPEG")
-
-#Pfad zum Quellordner der xml Dateien setzen
-def setPDFsrcPath():
-    #Pfad bekommen
-    global pdfSRCpath
-    pdfSRCpath = filedialog.askopenfilename()
-    labPDFSRCpath.config(text = pdfSRCpath) #Label ändern
-
 #TAB SRC convert
-labConvertSRC = tk.Label(tabSRCconvert, text = "Bitte die PDF-Datei auswählen")
-
-btnChosePDFSRC = tk.Button(tabSRCconvert, text = "PDF-Datei auswählen", command = lambda: [setPDFsrcPath()])
-btnChosePDFSRC.grid(row = 3, column = 2, padx = 5, pady = 5)
+labConvertDescr = tk.Label(tabSRCconvert, text = "In diesem Reiter können PDF-Dateien, wie sie z.B. vom Digitalisierungsdienst eines Archivs kommen, in einzelne Bilder zerlegt werden, um sie dann auf dem ocr4all-Server zu verarbeiten. Dies ist noch *nicht* der OCR- oder Annotations-Prozess, sondern lediglich die Konversion einer PDF-Datei in mehrere einzelne Bilddateien.", wraplength=800, justify=LEFT)
+labConvertDescr.grid(row = 1, column = 1, columnspan = 2, padx = 5, pady = 5)
 
 labPDFSRCpath = tk.Label(tabSRCconvert)
-labPDFSRCpath.grid(row = 3, column = 1, padx = 5, pady = 5)
+labPDFSRCpath.grid(row = 2, column = 1, padx = 5, pady = 5)
 
-labConvertDescr = tk.Label(tabSRCconvert, text = "Hier können PDF-Dateien in Einzelbilder zerlegt werden, um sie dann per ocr4all verarbeiten zu können.")
-labConvertDescr.grid(row = 1, column = 1, columnspan = 2, padx = 5, pady = 5)
+btnChosePDFSRC = tk.Button(tabSRCconvert, text = "PDF-Datei auswählen", command = lambda: [setPDFsrcPath()])
+btnChosePDFSRC.grid(row = 2, column = 2, padx = 5, pady = 5, sticky = "E")
+
 btnConvertPDF = tk.Button(tabSRCconvert, text = "PDF konvertieren", command = lambda: [fktCONVpdf2img()])
-btnConvertPDF.grid(row = 4, column = 1, columnspan = 2, padx = 5, pady = 5)
+btnConvertPDF.grid(row = 3, column = 2, padx = 5, pady = 5, sticky = "E")
 
 #global labSourceFolder
 #labSourceFolder = tk.Label(tabAnnotation, text = sourceFolderPath)
 
 
 ################################################################################
-#TAB Auf/vom OCR Server kopieren
-tabControl.add(tabOCRSRVcopy, text = "Daten auf den OCR Server kopieren")
-labUPLOADintro = tk.Label(tabOCRSRVcopy, text = "Der Inhalt des ausgewählten Ordners wird auf den OCR-Server hochgeladen. In diesem Ordner müssen die Dateien also in der Dafür notwendigen Struktur (00123_BLA/input/HierhinDieBilder; 00123_BLA/processing/) vorhanden sein. Falls die Bilder über dieses Tool bearbeitet wurden, ist diese Ordnerstruktur bereits vorhanden.", wraplength=800,justify=LEFT)
+#TAB Auf OCR Server kopieren
+labUPLOADintro = tk.Label(tabOCRSRVcopy, text = "Mit dieser Funktion können die in Einzelbilder aufgeteilten, entzerrten und in die korrekte Ordnerstruktur gebrachten Quellen auf den ocr4all-Server hochgeladen werden, um dort OCR-bearbeitet zu werden. Der Inhalt des ausgewählten Ordners wird auf den Server hochgeladen. In diesem Ordner müssen die Dateien in der dafür notwendigen Struktur (00123_BLA/input/HierhinDieBilder; 00123_BLA/processing/) vorhanden sein. Falls die Bilder über dieses Tool bearbeitet wurden, ist diese Ordnerstruktur bereits vorhanden.", wraplength=800,justify=LEFT)
 labUPLOADintro.grid(row = 1, column = 1, columnspan = 2, padx = 5, pady = 5)
 # ttk.Label(tabOCRSRVcopy, text="Hier können Quellen auf den OCR-Server kopiert werden.").grid(column=0, row=0, padx=30, pady=30)
 
 labUPLOADpath = tk.Label(tabOCRSRVcopy, text = "Bitte den Pfad auswählen auswählen")
-labUPLOADpath.grid(row = 2, column = 1, padx = 5, pady = 5)
+labUPLOADpath.grid(row = 2, column = 1, padx = 5, pady = 5, sticky = "W")
 
 btnChoseUPLOADpath = tk.Button(tabOCRSRVcopy, text = "Pfad auswählen", command = lambda: [setUPLOADpath()])
-btnChoseUPLOADpath.grid(row = 2, column = 2, padx = 5, pady = 5)
+btnChoseUPLOADpath.grid(row = 2, column = 2, padx = 5, pady = 5, sticky = "E")
 
 #Ablauf
 # 1. Ordner auswählen --> multi folder
-#TODO: Mehrere Ordner auswählbar machen!
 #Pfad zum Quellordner der xml Dateien setzen
 def setUPLOADpath():
     #Pfad bekommen
-#    global uploadPATH
     global source_path
-#    uploadPATH = filedialog.askdirectory()
     source_path = filedialog.askdirectory()
     labUPLOADpath.config(text = source_path) #Label ändern
 
@@ -560,44 +336,207 @@ def setUPLOADpath():
 
 #set ssh credentials
 labIP = tk.Label(tabOCRSRVcopy, text = "IP-Adresse:", justify = LEFT)
-labIP.grid(row = 4, column = 1, padx = 5, pady = 5)
+labIP.grid(row = 3, column = 1, padx = 5, pady = 5, sticky = "W")
 sshIPbox = Entry(tabOCRSRVcopy)
-sshIPbox.grid(row = 4, column = 2, padx = 5, pady = 5)
+sshIPbox.grid(row = 3, column = 2, padx = 5, pady = 5, sticky = "E")
 
 labPORT = tk.Label(tabOCRSRVcopy, text = "Port:", justify = LEFT)
-labPORT.grid(row = 5, column = 1, padx = 5, pady = 5)
+labPORT.grid(row = 4, column = 1, padx = 5, pady = 5, sticky = "W")
 sshPORTbox = Entry(tabOCRSRVcopy)
-sshPORTbox.grid(row = 5, column = 2, padx = 5, pady = 5)
+sshPORTbox.grid(row = 4, column = 2, padx = 5, pady = 5, sticky = "E")
 
 labUSER = tk.Label(tabOCRSRVcopy, text = "Benutzer:", justify = LEFT)
-labUSER.grid(row = 6, column = 1, padx = 5, pady = 5)
+labUSER.grid(row = 5, column = 1, padx = 5, pady = 5, sticky = "W")
 sshUSERbox = Entry(tabOCRSRVcopy)
-sshUSERbox.grid(row = 6, column = 2, padx = 5, pady = 5)
+sshUSERbox.grid(row = 5, column = 2, padx = 5, pady = 5, sticky = "E")
 
 labPWD = tk.Label(tabOCRSRVcopy, text = "Passwort:", justify = LEFT)
-labPWD.grid(row = 7, column = 1, padx = 5, pady = 5)
+labPWD.grid(row = 6, column = 1, padx = 5, pady = 5, sticky = "W")
 sshPWDbox = Entry(tabOCRSRVcopy, show = "*")
-sshPWDbox.grid(row = 7, column = 2, padx = 5, pady = 5)
-
+sshPWDbox.grid(row = 6, column = 2, padx = 5, pady = 5, sticky = "E")
 
 btnUPLOAD = tk.Button(tabOCRSRVcopy, text = "Hochladen", command = lambda: [copyToServer(sshIPbox.get(), int(sshPORTbox.get()), sshUSERbox.get(), sshPWDbox.get(), source_path, "/var/data/ocr4all/data")])
 
-btnUPLOAD.grid(row = 8, column = 1, columnspan = 2, padx = 5, pady = 5)
+btnUPLOAD.grid(row = 7, column = 2, padx = 5, pady = 5, sticky = "E")
+
+
 
 ################################################################################
-#TAB Annotation
-# Grid bauen: jede Spalte bekommt ein Gewicht; so werden sie auf die Breite verteilt
-tabAnnotation.columnconfigure(0, weight = 1)
-tabAnnotation.columnconfigure(1, weight = 1)
+##
+#Tab vom ocr Server runterladen
+labDOWNLOADintro = tk.Label(tabOCRSRVdownload, text = "Mit dieser Funktion können die OCR-bearbeiteten Quellen vom Server heruntergeladen werden. Die Anmeldedaten sind die Selben wie die für den Upload. \n Es werden alle Dateien auf dem Server heruntergeladen und im angegebenen Ordner gespeichert. Von dort können sie zur Konversion nach TEI XML weitergegeben werden.", wraplength=800,justify=LEFT)
+labDOWNLOADintro.grid(row = 0, column = 0, columnspan = 2, padx = 5, pady = 5)
 
-#Widgets anordnen
+labDOWNLOADpath = tk.Label(tabOCRSRVdownload, text = "Bitte den Pfad auswählen auswählen")
+labDOWNLOADpath.grid(row = 1, column = 0, padx = 5, pady = 5, sticky = "W")
+
+btnChoseUPLOADpath = tk.Button(tabOCRSRVdownload, text = "Speicherort auswählen", command = lambda: [setDOWNLOADpath()])
+btnChoseUPLOADpath.grid(row = 1, column = 1, padx = 5, pady = 5, sticky = "E")
+
+#Ablauf
+#Pfad zum Zielordner des Downloads
+def setDOWNLOADpath():
+    #Pfad bekommen
+    global download_path
+    download_path = filedialog.askdirectory()
+    labDOWNLOADpath.config(text = download_path) #Label ändern
+
+# 2. SSH verbindung
+
+#set ssh credentials
+labDOWNLOADIP = tk.Label(tabOCRSRVdownload, text = "IP-Adresse:", justify = LEFT)
+labDOWNLOADIP.grid(row = 2, column = 0, padx = 5, pady = 5, sticky = "W")
+sshDOWNLOADIPbox = Entry(tabOCRSRVdownload)
+sshDOWNLOADIPbox.grid(row = 2, column = 1, padx = 5, pady = 5, sticky = "E")
+
+labDOWNLOADPORT = tk.Label(tabOCRSRVdownload, text = "Port:", justify = LEFT)
+labDOWNLOADPORT.grid(row = 3, column = 0, padx = 5, pady = 5, sticky = "W")
+sshDOWNLOADPORTbox = Entry(tabOCRSRVdownload)
+sshDOWNLOADPORTbox.grid(row = 3, column = 1, padx = 5, pady = 5, sticky = "E")
+
+labDOWNLOADUSER = tk.Label(tabOCRSRVdownload, text = "Benutzer:", justify = LEFT)
+labDOWNLOADUSER.grid(row = 4, column = 0, padx = 5, pady = 5, sticky = "W")
+sshDOWNLOADUSERbox = Entry(tabOCRSRVdownload)
+sshDOWNLOADUSERbox.grid(row = 4, column = 1, padx = 5, pady = 5, sticky = "E")
+
+labDOWNLOADPWD = tk.Label(tabOCRSRVdownload, text = "Passwort:", justify = LEFT)
+labDOWNLOADPWD.grid(row = 5, column = 0, padx = 5, pady = 5, sticky = "W")
+sshDOWNLOADPWDbox = Entry(tabOCRSRVdownload, show = "*")
+sshDOWNLOADPWDbox.grid(row = 5, column = 1, padx = 5, pady = 5, sticky = "E")
+
+btnDOWNLOAD = tk.Button(tabOCRSRVdownload, text = "Runterladen", command = lambda: [downloadFromServer(download_path)])
+
+btnDOWNLOAD.grid(row = 8, column = 0, padx = 5, pady = 5, columnspan = 2)
+
+cnopts = pysftp.CnOpts()
+cnopts.hostkeys = None    
+
+def downloadFromServer(download_path):
+    preserve_mtime=False
+    server_ip = sshDOWNLOADIPbox.get()
+    username = sshDOWNLOADUSERbox.get()
+    password = sshDOWNLOADPWDbox.get()
+    port = int(sshDOWNLOADPORTbox.get())
+
+    remote_path = "/var/data/ocr4all/data/"
+
+    #subprocess.Popen("ssh {user}@{host} -p {port} {cmd}".format(user = username, host = server_ip, port = port, cmd = "/var/data/ocr4all/set_download_permissions.sh"), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+
+    cnopts = pysftp.CnOpts()
+    cnopts.hostkeys = None    
+    sftp=pysftp.Connection(server_ip, username = username,password = password,cnopts=cnopts, port = port)
+
+    #eventuell vorhandenes Logfile erstmal löschen
+    if os.name == "posix":
+        if os.path.exists(download_path + "/download_log.txt"):
+            os.remove(download_path + "/download_log.txt")
+    elif os.name == "nt":
+        if os.path.exists(download_path + "\\download_log.txt"):
+            os.remove(download_path + "\\download_log.txt")
+
+    def download_files(sftp, remotedir, localdir, preserve_mtime=False):
+
+    #(neues) Log anlegen
+        if os.name == "posix":
+            download_log = open(download_path + "/download_log.txt", "a") #öffne (neue) Log-Datei
+            download_log.write("Downloading " + remotedir + "\n") #aktuelle Datei eintragen
+            download_log.close() #Datei schließen = speichern
+        elif os.name == "nt":
+            download_log = open(download_path + "\\download_log.txt", "a")
+            download_log.write("Downloading " + remotedir + "\n") #aktuelle Datei eintragen
+            download_log.close() #Datei schließen = speichern
+
+        for entry in sftp.listdir(remotedir):
+            remotepath = remotedir + "/" + entry
+            localpath = os.path.join(localdir, entry)
+            mode = sftp.stat(remotepath).st_mode
+
+            if S_ISDIR(mode):
+                try:
+                    Path(localpath).mkdir(parents=True, exist_ok=True)
+                except OSError:     
+                    pass
+                download_files(sftp, remotepath, localpath, preserve_mtime)
+            elif S_ISREG(mode):
+                sftp.get(remotepath, localpath, preserve_mtime=preserve_mtime)
+
+        if os.name == "posix":
+            download_log = open(download_path + "download_log.txt", "a")
+            download_log.write("Finished downloading " + remotedir + "\n")
+            download_log.write("*********************************" + "\n")
+            download_log.close()
+        elif os.name == "nt":
+            download_log = open(download_path + "download_log.txt", "a")
+            download_log.write("Finished downloading " + remotedir + "\n")
+            download_log.write("*********************************" + "\n")
+            download_log.close()
+    
+    download_files(sftp, remote_path, download_path, preserve_mtime=False)
+
+
+
+
+
+
+
+
+################################################################################
+"""
+Automatische Annotation
+"""
+
+FileListPath = "Keine Dateiliste ausgewählt"
+WordListPath = "Keine Tagliste ausgewählt"
+sourceFolderPath = "Kein Quellordner ausgewählt"
+destinationFolderPath = "Kein Zielordner ausgewählt"
+
+#Anzeige der Dateiliste
+global labDateiListenPfad
+labDateiListenPfad = tk.Label(tabAnnotation, text = FileListPath)
+boxDateiliste = scrolledtext.ScrolledText(tabAnnotation, wrap=tk.WORD, width=100, height=20)
+
+global labWordListPath
+labWordListPath = tk.Label(tabAnnotation, text = WordListPath)
+boxWordlist = scrolledtext.ScrolledText(tabAnnotation, wrap=tk.WORD, width=100, height=20)
+
+BeschreibungAllgemein = tk.Label(tabAnnotation, text = "Mit dieser Funktion können die TEI XML-Dateien automatisch annotiert werden. Auf der linken Seite stehen die zu bearbeitenden Dateien, auf der rechten Seite die zu annotierenden Tags mit den dazugehörigen Signalwörtern. \n Außerdem müssen der Quell- und Zielordner der TEI XML-Dateien ausgewählt werden. Wird kein Zielordner angegeben, werden die annotierten Dateien am Standardort (Quellordner/annotierte_TEI_Dateien/) gespeichert.", wraplength=800, justify=LEFT)
+
+BeschreibungDateiliste = tk.Label(tabAnnotation, text = "In die Dateiliste müssen die zu annotierenden Dateien in einzelnen Zeilen, ohne Dateiendung (d.h. nur die ID 00001, 00002, etc.) eingetragen oder aus einer Datei eingelesen werden.", wraplength=400,justify=LEFT)
+
+BeschreibungTagliste = tk.Label(tabAnnotation, text = "In die Wortliste müssen die zu setzenden Tags und die dazugehörigen Signalworte in einzelnen Zeilen wie folgt eingetragen oder aus einer Datei eingelesen werden:\nDas # markiert ein Schlagwort, alle bis zum nächsten # folgenden Worte werden mit diesem annotiert. Es werden *nur* die angegebenen Schreibweisen annotiert, keine Abwandlungen davon (d.h. Pause != Pausen). Sobald das nächste # folgt, wird ein neues Tag annotiert. \n ACHTUNG: Die Tagliste darf keine Leerzeilen enthalten. Das wird in einer folgenden Softwareversion gefixt.", wraplength=400,justify=LEFT)
+
+#Button: Dateiliste auswählen
+btnDateiliste = tk.Button(tabAnnotation, text = "Dateiliste auswählen", command = lambda: [setDateilistePfad()])
+
+#Button: Tagliste auswählen
+btnWordList = tk.Button(tabAnnotation, text = "Tagliste auswählen", command = lambda: [setWordListPath()])
+
+#Button: Quellordner
+btnChooseSourceFolder = tk.Button(tabAnnotation, text = "Quellordner auswählen", command = lambda: [setSourceFolder()])
+global labSourceFolder
+labSourceFolder = tk.Label(tabAnnotation, text = sourceFolderPath)
+
+
+#Button: Zielordner
+btnChooseDestinationFolder = tk.Button(tabAnnotation, text = "Zielordner wählen", command = lambda: [setDestinationFolder()])
+global labDestinationFolder
+labDestinationFolder = tk.Label(tabAnnotation, text = destinationFolderPath)
+
+#Button, um die Annotation zu starten
+btnAnnotieren = tk.Button(tabAnnotation, text="Annotation starten", command = lambda: AutoAnnotation(FileListPath, WordListPath, destinationFolderPath, sourceFolderPath))
+
+
+#Anordnung
 BeschreibungAllgemein.grid(column = 0, row = 0, padx=5, pady=5, columnspan=2)
 
-BeschreibungDateiliste.grid(column = 0, row = 1, padx=5, pady=5)
-BeschreibungTagliste.grid(column = 1, row = 1, padx=5, pady=5)
+BeschreibungDateiliste.grid(column = 0, row = 1, padx=5, pady=5, sticky = "N")
+BeschreibungTagliste.grid(column = 1, row = 1, padx=5, pady=5, sticky = "N")
 
-DateiListe.grid(column=0, row=2, padx=5, pady=5)
-TagListe.grid(column=1, row=2, padx=5, pady=5)
+#DateiListe.grid(column=0, row=2, padx=5, pady=5)
+boxDateiliste.grid(column=0, row=2, padx=5, pady=5)
+
+
+boxWordlist.grid(column=1, row=2, padx=5, pady=5)
 
 btnDateiliste.grid(column = 0, row = 3)
 btnWordList.grid(column = 1, row = 3)
@@ -611,8 +550,129 @@ btnChooseDestinationFolder.grid(column = 1, row = 5)
 labSourceFolder.grid(column=0, row=6, padx=5, pady=5)
 labDestinationFolder.grid(column=1, row=6, padx=5, pady=5)
 
-btnAnnotieren.grid(column=0, row=7)
-btnAbbrechen.grid(column=1, row=7)
+btnAnnotieren.grid(column=0, row=7, padx=5, pady=5, columnspan = 2)
+
+
+
+################################################################################
+"""
+Manuelle Transkription
+"""
+labXMLmanualDescr = tk.Label(tabXMLmanual, text = "Hier können Quellen manuell transkribiert werden. Diese Funktion ist für die Quellen der DMZ sowie handschriftliche Quellen gedacht. \n In die unten stehenden Felder werden die Metadaten der Quelle eingetragen, in das große Textfeld der Quellentext. Die Datei wird im ausgewählten Ordner gespeichert.", wraplength=800,justify=LEFT)
+labXMLmanualDescr.grid(row = 0, column = 0, padx = 5, pady = 5, columnspan= 2)
+
+def setXMLDestinationFolder():
+    global XMLdestinationFolderPath
+    XMLdestinationFolderPath = filedialog.askdirectory()
+    #print("Destination Folder: " + destinationFolderPath)
+    labXMLDestinationFolder.config(text = XMLdestinationFolderPath)
+
+btnChooseXMLDestFolder = tk.Button(tabXMLmanual, text = "Exportordner auswählen", command = lambda: [setXMLDestinationFolder()])
+btnChooseXMLDestFolder.grid(row = 9, column = 1, padx = 5, pady = 5, sticky = "E")
+
+global XMLlabDestinationFolder
+labXMLDestinationFolder = tk.Label(tabXMLmanual, text = "")
+labXMLDestinationFolder.grid(row = 9, column = 0, padx = 5, pady = 5, sticky = "W")
+
+# 2. Daten der Quelle eingeben
+labSRCID = tk.Label(tabXMLmanual, text = "Quellen-ID:", justify = LEFT)
+labSRCID.grid(row = 1, column = 0, padx = 5, pady = 5, sticky = "W")
+SRCIDbox = Entry(tabXMLmanual, width = 50)
+SRCIDbox.insert(END, "99999") #default value
+SRCIDbox.grid(row = 1, column = 1, padx = 5, pady = 5, sticky = "E")
+
+labWHEN = tk.Label(tabXMLmanual, text = "Datum:", justify = LEFT)
+labWHEN.grid(row = 2, column = 0, padx = 5, pady = 5, sticky = "W")
+WHENlabel = tk.Label(tabXMLmanual, text = datetime.now().strftime("%Y-%m-%d+%H:%M"), justify = LEFT)
+WHENlabel.grid(row = 2, column = 1, padx = 5, pady = 5, sticky = "E")
+
+labSRCYEAR = tk.Label(tabXMLmanual, text = "Jahr der Quelle:", justify = LEFT)
+labSRCYEAR.grid(row = 3, column = 0, padx = 5, pady = 5, sticky = "W")
+SRCYEARbox = Entry(tabXMLmanual, width = 50)
+SRCYEARbox.insert(END, "9999") #default value
+SRCYEARbox.grid(row = 3, column = 1, padx = 5, pady = 5, sticky = "E")
+
+labSRCBIBL = tk.Label(tabXMLmanual, text = "Quellennachweis (inkl. Seite):", justify = LEFT)
+labSRCBIBL.grid(row = 4, column = 0, padx = 5, pady = 5, sticky = "W")
+SRCBIBLbox = Entry(tabXMLmanual, width = 50)
+SRCBIBLbox.insert(END, "Beispielzeitschrift, Ausgabe 9999, 01.01.9999, S. 99") #default value
+SRCBIBLbox.grid(row = 4, column = 1, padx = 5, pady = 5, sticky = "E")
+
+labSHORTTITLE = tk.Label(tabXMLmanual, text = "Kurztitel (AO_FIRMA_ORT_JAHR):", justify = LEFT)
+labSHORTTITLE.grid(row = 5, column = 0, padx = 5, pady = 5, sticky = "W")
+SHORTTITLEbox = Entry(tabXMLmanual, width = 50)
+SHORTTITLEbox.insert(END, "AO_Beispielfirma_Beispielort_9999") #default value
+SHORTTITLEbox.grid(row = 5, column = 1, padx = 5, pady = 5, sticky = "E")
+
+labTITLE = tk.Label(tabXMLmanual, text = "Offizieller Titel:", justify = LEFT)
+labTITLE.grid(row = 6, column = 0, padx = 5, pady = 5, sticky = "W")
+TITLEbox = Entry(tabXMLmanual, width = 50)
+TITLEbox.insert(END, "Arbeitsordnung der Beispielfirma am Beispielort vom 1.1.9999") #default value
+TITLEbox.grid(row = 6, column = 1, padx = 5, pady = 5, sticky = "E")
+
+labSRCTEXT = tk.Label(tabXMLmanual, text = "Text der Quelle:", justify = LEFT)
+labSRCTEXT.grid(row = 7, column = 0, padx = 5, pady = 5, columnspan=2, sticky = "W")
+SRCTEXTbox = scrolledtext.ScrolledText(tabXMLmanual, wrap=tk.WORD, width=100, height=20)
+SRCTEXTbox.grid(row = 8, column = 0, padx = 5, pady = 5, columnspan=2)
+
+# 4. Speichern-Button!
+btnSaveXMLManual = tk.Button(tabXMLmanual, text = "Speichern", command = lambda: [saveXMLManual()])
+btnSaveXMLManual.grid(row = 10, column = 1, padx = 5, pady = 5, columnspan = 2, sticky = "E")
+
+def saveXMLManual():
+    #1. Get all the data from entry fields
+    SRCID = SRCIDbox.get()
+    WHEN = WHENlabel.cget("text")
+    SRCYEAR = SRCYEARbox.get()
+    SRCBIBL = SRCBIBLbox.get()
+    SHORTTITLE = SHORTTITLEbox.get()
+    TITLE = TITLEbox.get()
+
+    #replace linebreaks, and symbol etc in SRCTEXT with XML linebreaks (depending on OS!)
+    SRCTEXT = SRCTEXTbox.get('1.0', tk.END)
+    if os.name == "posix":
+        SRCTEXT = SRCTEXT.replace("\n", "<lb/>\n")
+        SRCTEXT = SRCTEXT.replace("&", "&amp;")
+        SRCTEXT = SRCTEXT.replace("§", "&#167;")
+
+    elif os.name == "nt":
+        SRCTEXT = SRCTEXT.replace("\r\n","<lb/>\r\n")
+        SRCTEXT = SRCTEXT.replace("&", "&amp;")
+        SRCTEXT = SRCTEXT.replace("§", "&#167;")
+
+    
+    #Open XML Vorlage file
+    #with open(XMLVorlagePath, "r", encoding = "utf8") as file:
+    #    XMLVorlageText = file.read()
+    #4. replace variables in XML data
+
+    global ManualTranscriptionText
+    ManualTranscriptionText = TEIVorlage
+
+    ManualTranscriptionText = ManualTranscriptionText.replace("$SRCID", SRCID)
+    ManualTranscriptionText = ManualTranscriptionText.replace("$WHEN", WHEN)
+    ManualTranscriptionText = ManualTranscriptionText.replace("$SRCYEAR", SRCYEAR)
+    ManualTranscriptionText = ManualTranscriptionText.replace("$SRCBIBL", SRCBIBL)
+    ManualTranscriptionText = ManualTranscriptionText.replace("$SHORTTITLE", SHORTTITLE)
+    ManualTranscriptionText = ManualTranscriptionText.replace("$TITLE", TITLE)
+    ManualTranscriptionText = ManualTranscriptionText.replace("$SRCTEXT", SRCTEXT)
+
+    #5. Write new XML File for current source
+    #open text file
+    if os.name == "posix":
+        newXMLSource = open((XMLdestinationFolderPath + "/" + SRCID + ".xml"), "w")
+    elif os.name == "nt":
+        newXMLSource = open((XMLdestinationFolderPath + "\\" + SRCID + ".xml"), "w")
+    #write string to file
+    newXMLSource.write(ManualTranscriptionText)
+    #close file
+    newXMLSource.close()
+
+################################################################################
+#TAB Annotation
+# Grid bauen: jede Spalte bekommt ein Gewicht; so werden sie auf die Breite verteilt
+tabAnnotation.columnconfigure(0, weight = 1)
+tabAnnotation.columnconfigure(1, weight = 1)
 
 #Mainloop-Methode --> "Eventloop" --> muss aufgerufen werden --> Endlosschleife, die Interaktionen mit GUI abfängt
 mainWindow.mainloop()
