@@ -1,39 +1,27 @@
 from __future__ import annotations
-from distutils.filelist import FileList
-from textwrap import wrap
-import tkinter as tk
-from tkinter import *
-from tkinter import ttk
-from tkinter import Grid
-from tkinter import filedialog
-from tkinter import messagebox
+
+import os
+#import re
 import shutil
-from tkinter import scrolledtext
-import paramiko
-from paramiko import SSHClient 
-from datetime import datetime
-import re
-from tkcalendar import Calendar
-#from pdf2image import convert_from_path
-import os
-#import fitz  # PyMuPDF, imported as fitz for backward compatibility reasons
-#from pdf2jpg import pdf2jpg
-
-##XML Vorlage aus externer Datei importieren
-from teivorlage import TEIVorlage
-
-import paramiko
-import pandas as pd
-from pandas_gbq import to_gbq
-from google.cloud import bigquery
-from subprocess import Popen, PIPE
 import subprocess
+#import sys
+import tkinter as tk
+from datetime import datetime
+from distutils.filelist import FileList
 from pathlib import Path
-import os
-import pysftp
 from stat import S_IMODE, S_ISDIR, S_ISREG
+from subprocess import PIPE, Popen
+from textwrap import wrap
+from tkinter import *
+from tkinter import Grid, filedialog, scrolledtext, ttk
 
-import sys
+import fitz
+
+#import pandas as pd
+import paramiko
+import pysftp
+
+from teivorlage import TEIVorlage
 
 
 class MySFTPClient(paramiko.SFTPClient):
@@ -265,7 +253,6 @@ def setPDFsrcPath():
 
 def fktCONVpdf2img():
     currPDF = os.path.abspath(pdfSRCpath)
-    #currPDF = convert_from_path(pdfSRCpath)
     #dateinamen bekommen
     pdfFILEname = os.path.basename(pdfSRCpath).split(".")[0]
     #Ordnerstruktur anlegen
@@ -294,6 +281,19 @@ def fktCONVpdf2img():
             #Funktion erneut aufrufen
             fktCONVpdf2img()
 
+    #konvertieren
+    #iterate through the pages of the document and create a RGB image of the page
+    for page in fitz.open(pdfSRCpath):
+        pix = page.get_pixmap()
+        if os.name == "posix":
+            index = "%i" % page.number
+            pix.save(os.path.dirname(pdfSRCpath) + "/" + pdfFILEname + "/input/" + pdfFILEname[0:5] + "-" + str(index).zfill(4) + ".png")
+        elif os.name == "nt":
+            index = "%i" % page.number
+            pix.save(os.path.dirname(pdfSRCpath) + "\\" + pdfFILEname + "\\input\\" + pdfFILEname[0:5] + "-" + str(index).zfill(4) + ".png" )
+
+#################################################################################################################################################
+
 #TAB SRC convert
 labConvertDescr = tk.Label(tabSRCconvert, text = "In diesem Reiter können PDF-Dateien, wie sie z.B. vom Digitalisierungsdienst eines Archivs kommen, in einzelne Bilder zerlegt werden, um sie dann auf dem ocr4all-Server zu verarbeiten. Dies ist noch *nicht* der OCR- oder Annotations-Prozess, sondern lediglich die Konversion einer PDF-Datei in mehrere einzelne Bilddateien.", wraplength=800, justify=LEFT)
 labConvertDescr.grid(row = 1, column = 1, columnspan = 2, padx = 5, pady = 5)
@@ -313,7 +313,7 @@ btnConvertPDF.grid(row = 3, column = 2, padx = 5, pady = 5, sticky = "E")
 
 ################################################################################
 #TAB Auf OCR Server kopieren
-labUPLOADintro = tk.Label(tabOCRSRVcopy, text = "Mit dieser Funktion können die in Einzelbilder aufgeteilten, entzerrten und in die korrekte Ordnerstruktur gebrachten Quellen auf den ocr4all-Server hochgeladen werden, um dort OCR-bearbeitet zu werden. Der Inhalt des ausgewählten Ordners wird auf den Server hochgeladen. In diesem Ordner müssen die Dateien in der dafür notwendigen Struktur (00123_BLA/input/HierhinDieBilder; 00123_BLA/processing/) vorhanden sein. Falls die Bilder über dieses Tool bearbeitet wurden, ist diese Ordnerstruktur bereits vorhanden.", wraplength=800,justify=LEFT)
+labUPLOADintro = tk.Label(tabOCRSRVcopy, text = "Mit dieser Funktion können die in Einzelbilder aufgeteilten, entzerrten und in die korrekte Ordnerstruktur gebrachten Quellen auf den ocr4all-Server hochgeladen werden, um dort OCR-bearbeitet zu werden. Der Inhalt des ausgewählten Ordners wird auf den Server hochgeladen. In diesem Ordner müssen die Dateien in der dafür notwendigen Struktur (00123_BLA/input/HierhinDieBilder; 00123_BLA/processing/) vorhanden sein. Falls die Bilder über dieses Tool bearbeitet wurden, ist diese Ordnerstruktur bereits vorhanden.\n Achtung: Der Inhalt des ausgewählten Ordners wird hochgeladen. Es darf also nicht der Quellenordner (00123_BLABLA) ausgewählt werden, sondern der darüberliegende Ordner. Es bietet sich an, alle hochzuladenden Quellen in einem Ordner wie Upload o.ä. zu sammeln, um diesen dann hochzuladen.", wraplength=800,justify=LEFT)
 labUPLOADintro.grid(row = 1, column = 1, columnspan = 2, padx = 5, pady = 5)
 # ttk.Label(tabOCRSRVcopy, text="Hier können Quellen auf den OCR-Server kopiert werden.").grid(column=0, row=0, padx=30, pady=30)
 
@@ -364,7 +364,7 @@ btnUPLOAD.grid(row = 7, column = 2, padx = 5, pady = 5, sticky = "E")
 ################################################################################
 ##
 #Tab vom ocr Server runterladen
-labDOWNLOADintro = tk.Label(tabOCRSRVdownload, text = "Mit dieser Funktion können die OCR-bearbeiteten Quellen vom Server heruntergeladen werden. Die Anmeldedaten sind die Selben wie die für den Upload. \n Es werden alle Dateien auf dem Server heruntergeladen und im angegebenen Ordner gespeichert. Von dort können sie zur Konversion nach TEI XML weitergegeben werden.", wraplength=800,justify=LEFT)
+labDOWNLOADintro = tk.Label(tabOCRSRVdownload, text = "Mit dieser Funktion können die OCR-bearbeiteten Quellen vom Server heruntergeladen werden. Die Anmeldedaten sind die Selben wie die für den Upload. \n Es werden alle Dateien auf dem Server heruntergeladen und im angegebenen Ordner gespeichert. Von dort können sie zur Konversion nach TEI XML weitergegeben werden.\n Achtung: Das Herunterladen kann eine längere Zeit in Anspruch nehmen. Im Downloadordner wird eine Log-Datei angelegt, die den aktuellen Stand enthält.", wraplength=800,justify=LEFT)
 labDOWNLOADintro.grid(row = 0, column = 0, columnspan = 2, padx = 5, pady = 5)
 
 labDOWNLOADpath = tk.Label(tabOCRSRVdownload, text = "Bitte den Pfad auswählen auswählen")
@@ -404,7 +404,7 @@ labDOWNLOADPWD.grid(row = 5, column = 0, padx = 5, pady = 5, sticky = "W")
 sshDOWNLOADPWDbox = Entry(tabOCRSRVdownload, show = "*")
 sshDOWNLOADPWDbox.grid(row = 5, column = 1, padx = 5, pady = 5, sticky = "E")
 
-btnDOWNLOAD = tk.Button(tabOCRSRVdownload, text = "Runterladen", command = lambda: [downloadFromServer(download_path)])
+btnDOWNLOAD = tk.Button(tabOCRSRVdownload, text = "Herunterladen", command = lambda: [downloadFromServer(download_path)])
 
 btnDOWNLOAD.grid(row = 8, column = 0, padx = 5, pady = 5, columnspan = 2)
 
@@ -420,6 +420,7 @@ def downloadFromServer(download_path):
 
     remote_path = "/var/data/ocr4all/data/"
 
+    #skript ausführen, das die Dateien auf dem Server lesbar macht
     #subprocess.Popen("ssh {user}@{host} -p {port} {cmd}".format(user = username, host = server_ip, port = port, cmd = "/var/data/ocr4all/set_download_permissions.sh"), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
 
     cnopts = pysftp.CnOpts()
@@ -472,13 +473,6 @@ def downloadFromServer(download_path):
             download_log.close()
     
     download_files(sftp, remote_path, download_path, preserve_mtime=False)
-
-
-
-
-
-
-
 
 ################################################################################
 """
@@ -639,12 +633,6 @@ def saveXMLManual():
         SRCTEXT = SRCTEXT.replace("\r\n","<lb/>\r\n")
         SRCTEXT = SRCTEXT.replace("&", "&amp;")
         SRCTEXT = SRCTEXT.replace("§", "&#167;")
-
-    
-    #Open XML Vorlage file
-    #with open(XMLVorlagePath, "r", encoding = "utf8") as file:
-    #    XMLVorlageText = file.read()
-    #4. replace variables in XML data
 
     global ManualTranscriptionText
     ManualTranscriptionText = TEIVorlage

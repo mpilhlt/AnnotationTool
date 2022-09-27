@@ -45,6 +45,21 @@ TEIVorlage = '''<?xml version="1.0" encoding="UTF-8"?>
                         <surname>Spendrin</surname>, <forename>Benjamin</forename>
                     </persName>
                 </editor>
+                <editor xml:id="BG" role="#technical">
+                    <persName>
+                        <surname>Gödde</surname>, <forename>Ben</forename>
+                    </persName>
+                </editor>
+                <editor xml:id="LM" role="#technical">
+                    <persName>
+                        <surname>Michel</surname>, <forename>Lisa</forename>
+                    </persName>
+                </editor>
+                <editor xml:id="AWt" role="#technical">
+                    <persName>
+                        <surname>Walther</surname>, <forename>Annika</forename>
+                    </persName>
+                </editor>
             </titleStmt>
 
             <editionStmt>
