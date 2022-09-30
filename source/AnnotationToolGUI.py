@@ -1,23 +1,18 @@
 from __future__ import annotations
 
 import os
-#import re
 import shutil
-import subprocess
-#import sys
 import tkinter as tk
 from datetime import datetime
 from distutils.filelist import FileList
 from pathlib import Path
 from stat import S_IMODE, S_ISDIR, S_ISREG
-from subprocess import PIPE, Popen
 from textwrap import wrap
 from tkinter import *
 from tkinter import Grid, filedialog, scrolledtext, ttk
 
 import fitz
 
-#import pandas as pd
 import paramiko
 import pysftp
 
@@ -47,9 +42,7 @@ class MySFTPClient(paramiko.SFTPClient):
             else:
                 raise
 
-
 ######
-
 
 def close_window():
     mainWindow.destroy()
@@ -137,10 +130,7 @@ def AutoAnnotation(FileListPath, WordListPath, destinationFolderPath, sourceFold
 
         # Zeichenkette ersetzen
         ### Einlesen von Tags und Wörtern
-        #wordList = open(WordListPath, 'r', encoding = "utf8").read().splitlines()
-
         wordList = boxWordlist.get('1.0', tk.END).splitlines()
-
 
         #Gehe alle Wörter durch
         for currWord in wordList:
@@ -177,30 +167,6 @@ def AutoAnnotation(FileListPath, WordListPath, destinationFolderPath, sourceFold
                 file.write(filedata)
                 #print("Wrote File: " + destinationFolderPath + "/" + currFile + ".xml")
 
-#     ######Ersetzungen mit Linebreaks
-    #Pattern erzeugen, das ersetzt werden soll: space + currWord + space --> und irgendwo da drin kann ein Ausdruck der Form <lb break="no"\n*\s* facs=(.*)"/> liegen
-
-    # Fall A: Linebreak im Wort "Maschine"
-    # Ma<lb break="no"
-    #           facs="#facs_3_l118" n="N000"/>schine
-    #Regex dafür: <lb break="no"\n*\s* facs=(.*)"/>
-
-    #baue tmpString space+currWord+space
-    #gehe tmpString durch: wenn zwischen space+1. Buchstaben, 1./2. Buchstaben, etc. ein lb kommt --> ersetzen
-#    tmpString = 'an der Ma<lb break=\"no\"\r\n facs=\"#facs_3_l118\" n=\"N000\"/>schine darf keine'
-#    tmpString = currWord + " "
-
-    #1. finde Vorkommen
-
-    #for i in range(0,len(tmpString)):
-    #    re.sub(r'\w*<lb break="no"\n*\s* facs=(.*)"/>\w*', r'\1@', tmpString)
-    #    re.match(r'\w*<lb break="no"\n*\s* facs=(.*)"/>\w*', tmpString)
-
-        #tmpString = re.sub(r'\d', "UMBRUCH", tmpString)
-        #originalLineBreak = re.find()
-        #tmpString = re.sub(r'<lb break="no"\n*\s* facs=(.*)"/>', (" <term key=\"" + "CURRTAG" + "\" resp=\"auto\">" + currWord + "</term> "), tmpString)
-        #print(tmpString)
-
 #def copyToServer(ip, port, user, pwd, localpath, remotepath):
 def copyToServer(HOST, PORT, USERNAME, PASSWORD, source_path, target_path):
     transport = paramiko.Transport((HOST, PORT))
@@ -214,7 +180,7 @@ def copyToServer(HOST, PORT, USERNAME, PASSWORD, source_path, target_path):
 #Kreiert Fenster
 
 mainWindow = Tk()
-mainWindow.title("AnnotationTool NsRdMi") #Fenstertitel
+mainWindow.title("AnnotationTool NsRdMi, v 0.9.1") #Fenstertitel
 mainWindow.geometry("1200x800") #Fenstergröße: Breite x Höhe
 
 #ttk.Notebook --> mehrere Reiter (Tabs) im Fenster
@@ -421,7 +387,14 @@ def downloadFromServer(download_path):
     remote_path = "/var/data/ocr4all/data/"
 
     #skript ausführen, das die Dateien auf dem Server lesbar macht
-    #subprocess.Popen("ssh {user}@{host} -p {port} {cmd}".format(user = username, host = server_ip, port = port, cmd = "/var/data/ocr4all/set_download_permissions.sh"), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+    script_exec = paramiko.SSHClient()
+    script_exec.load_system_host_keys()
+    script_exec.connect(server_ip, port, username, password)
+    command = "/var/data/ocr4all/set_download_permissions.sh"
+    (stdin, stdout, stderr) = script_exec.exec_command(command)
+    for line in stdout.readlines():
+        print(line)
+    script_exec.close()
 
     cnopts = pysftp.CnOpts()
     cnopts.hostkeys = None    
@@ -648,9 +621,9 @@ def saveXMLManual():
     #5. Write new XML File for current source
     #open text file
     if os.name == "posix":
-        newXMLSource = open((XMLdestinationFolderPath + "/" + SRCID + ".xml"), "w")
+        newXMLSource = open((XMLdestinationFolderPath + "/" + SRCID + ".xml"), "w", encoding = "utf-8")
     elif os.name == "nt":
-        newXMLSource = open((XMLdestinationFolderPath + "\\" + SRCID + ".xml"), "w")
+        newXMLSource = open((XMLdestinationFolderPath + "\\" + SRCID + ".xml"), "w", encoding = "utf-8")
     #write string to file
     newXMLSource.write(ManualTranscriptionText)
     #close file
