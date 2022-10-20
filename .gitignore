@@ -3,6 +3,7 @@
 *.manifest
 *.zip
 *.pyz
+*.pyc
 *.txt
 *.plist
 source/__pycache__/
