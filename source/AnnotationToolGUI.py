@@ -145,7 +145,17 @@ def AutoAnnotation(FileListPath, WordListPath, destinationFolderPath, sourceFold
             #Wenn aktuelles Wort mit # beginnt, merke es (und weitere Infos) als aktuelles Tag
             if currWord.startswith("#"):
                 #Wir haben in den Zeilen mit "Überschriften" weitere Werte und müssen das auseinander nehmen
-                currTag, currType, currId = currWord.split(':')
+                values = currWord.split(':')
+                currTag = ''
+                currType = ''
+                currId = ''
+                match len(values):
+                    case 1:
+                        currTag = currWord
+                    case 2:
+                        currTag, currType = values
+                    case 3:
+                        currTag, currType, currId = values
                 currTag = currTag[1:] #Entferne das # (=den 1. char des strings)
                 if not(currTag in occ): occ[currTag] = 0
                 if currType : currTypeExpr = "type=\"" + currType + "\" "
