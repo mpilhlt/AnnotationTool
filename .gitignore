@@ -5,7 +5,7 @@
 *.pyz
 *.txt
 *.plist
-source/__pycache__
+source/__pycache__/
 build/tmp/AnnotationTool/AnnotationTool.pkg
 build/tmp/AnnotationTool/xref-AnnotationTool.html
 source/AnnotationTool.spec
