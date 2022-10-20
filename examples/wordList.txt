@@ -1,11 +1,16 @@
-#Personen
+#Erwachsener Arbeiter:wt_role:wtr-r2.1
 Arbeiter
+#Erwachsene Arbeiterin:wt_role:wtr-r2.2
+Arbeiterin
+#Meister:wt_role:wtr-r2.5
 Meister
 Werkmeister
+#Angestellter/Angestellte:wt_role:wtr-r2.3
 Angestellte
 Angestellter
-Arbeiterin
-#Pause
+#Minderjährige:wt_role:wtr-r2.6
+jugendlicher Arbeiter
+#Pause:wt_term:wtt-t0.5.1
 Pause
 Pausen
 Vesperpause
