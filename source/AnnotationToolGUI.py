@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import tkinter as tk
 from datetime import datetime
@@ -117,6 +118,8 @@ def readAnnotationData(WordListPath):
 def AutoAnnotation(FileListPath, WordListPath, destinationFolderPath, sourceFolderPath):
     #Gehe alle Dateien aus der fileList durch
     fileList = boxDateiliste.get('1.0', tk.END).splitlines() #hole den aktuellen boxDateiliste, um den zu verarbeiten (beginnt beim ersten Zeichen, endet am Ende der Textbox; dann in Zeilen splitten)
+    #Here we count occurrences:
+    occ = {}
 
     for currFile in fileList:
         # Aktuelle Datei einlesen
@@ -128,31 +131,59 @@ def AutoAnnotation(FileListPath, WordListPath, destinationFolderPath, sourceFold
             with open((sourceFolderPath  + "/" + currFile + ".xml"), 'r', encoding = "utf8") as file :
                 filedata = file.read()
 
+        #TODO: xml mit lxml bearbeiten und dann nur in xml Text nodes suchen/ersetzen. Bis dahin:
+        #Erst mal bis zu "<text>" vorspulen, wir wollen ja nichts in den Header schreiben!
+        head, tail = filedata.split("<text>", 1)
+
         # Zeichenkette ersetzen
         ### Einlesen von Tags und Wörtern
         wordList = boxWordlist.get('1.0', tk.END).splitlines()
+        # Ein Dictionary um die Vorkommnisse von Tags zu zählen
 
         #Gehe alle Wörter durch
         for currWord in wordList:
-            #Wenn aktuelles Wort mit # beginnt, setze aktuelles Tag darauf
+            #Wenn aktuelles Wort mit # beginnt, merke es (und weitere Infos) als aktuelles Tag
             if currWord.startswith("#"):
-                currTag = currWord[1:] #Entferne das # (=den 1. char des strings)
+                #Wir haben in den Zeilen mit "Überschriften" weitere Werte und müssen das auseinander nehmen
+                values = currWord.split(':')
+                currTag = ''
+                currType = ''
+                currId = ''
+                match len(values):
+                    case 1:
+                        currTag = currWord
+                    case 2:
+                        currTag, currType = values
+                    case 3:
+                        currTag, currType, currId = values
+                currTag = currTag[1:] #Entferne das # (=den 1. char des strings)
+                if not(currTag in occ): occ[currTag] = 0
+                if currType : currTypeExpr = "type=\"" + currType + "\" "
+                if currId :   currIdExpr   = "ref=\"" + currId + "\" "
             #Wenn nicht, ersetze aktuelles Wort mit dem Tag
-            else:
+            elif currWord:
                 #print("annotating " + currWord + " with the tag #" + currTag)
                 #f_ersetzung(filedata, currTag, currWord)
-                filedata = filedata.replace(" " + currWord + " ", (" <term key=\"" + currTag + "\" resp=\"auto\">" + currWord + "</term> "))
-                #print(filedata)
-                # #b) von einem Komma
-                filedata = filedata.replace(" " + currWord + ",", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>,"))
-                #c) von einem Punkt (= Satzende)
-                filedata = filedata.replace(" " + currWord + ".", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>."))
-                #d) von einem Ausrufezeichen
-                filedata = filedata.replace(" " + currWord + "!", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>!"))
-                #e) von einem Fragezeichen
-                filedata = filedata.replace(" " + currWord + "?", (" <term key=\"" + currTag + "\" resp=\"auto\">"+ currWord + "</term>?"))
 
-        
+                #Wir suchen mit einem regulärem Ausdruck nach dem ganzen Word (\b = word boundary)
+                searchPattern = re.compile('\\b%s([ ,.!?])'%currWord)
+                replacePattern = "<term " + currTypeExpr + currIdExpr + "key=\"" + currTag + "\" resp=\"auto\">" + currWord + "</term>\\1"  # '\1' ist der erste Klammerterm im searchPattern
+
+                #tail = tail.replace(" " + currWord + " ", (" " + replacePattern + " "))
+                # #b) von einem Komma
+                #tail = tail.replace(" " + currWord + ",", (" " + replacePattern + ","))
+                #c) von einem Punkt (= Satzende)
+                #tail = tail.replace(" " + currWord + ".", (" " + replacePattern + "."))
+                #d) von einem Ausrufezeichen
+                #tail = tail.replace(" " + currWord + "!", (" " + replacePattern + "!"))
+                #e) von einem Fragezeichen
+                #tail = tail.replace(" " + currWord + "?", (" " + replacePattern + "?"))
+
+                tail, number = re.subn(searchPattern, replacePattern, tail)
+                #print("    searchPattern: " + str(searchPattern) + ", replacePattern: " + replacePattern)
+                if currTag in occ: occ[currTag] = occ[currTag] + number
+                print("    replaced " + str(number)  + " occurrences of \"" + currWord + "\" in " + currFile + ".xml")
+
         #Checken, ob Zielordner existiert, sonst anlegen
         if os.path.exists(destinationFolderPath) == False:
             os.makedirs(destinationFolderPath)
@@ -160,12 +191,17 @@ def AutoAnnotation(FileListPath, WordListPath, destinationFolderPath, sourceFold
         #Annotierte Dateien schreiben
         if os.name == "nt":
             with open(destinationFolderPath  + "\\" +  currFile + ".xml", "w", encoding = "utf8") as file:
-                file.write(filedata)
+                file.write(head + "<text>" + tail)
                 #print("Wrote File: " + destinationFolderPath + "\\" + currFile+ ".xml")
         elif os.name == "posix":
             with open(destinationFolderPath  + "/" +  currFile + ".xml", "w", encoding = "utf8") as file:
-                file.write(filedata)
+                file.write(head + "<text>" + tail)
                 #print("Wrote File: " + destinationFolderPath + "/" + currFile + ".xml")
+
+    #Diagnostic output
+    print('\n====')
+    for t in occ:
+        print("Handled " + str(occ[t]) + " occurrences of \"" + t + "\"") 
 
 #def copyToServer(ip, port, user, pwd, localpath, remotepath):
 def copyToServer(HOST, PORT, USERNAME, PASSWORD, source_path, target_path):
