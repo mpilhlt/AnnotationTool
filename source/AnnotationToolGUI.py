@@ -149,13 +149,9 @@ def AutoAnnotation(FileListPath, WordListPath, destinationFolderPath, sourceFold
                 currTag = ''
                 currType = ''
                 currId = ''
-                match len(values):
-                    case 1:
-                        currTag = currWord
-                    case 2:
-                        currTag, currType = values
-                    case 3:
-                        currTag, currType, currId = values
+                if len(values) == 1 : currTag = currWord
+                if len(values) == 2 : currTag, currType = values
+                if len(values) == 3: currTag, currType, currId = values
                 currTag = currTag[1:] #Entferne das # (=den 1. char des strings)
                 if not(currTag in occ): occ[currTag] = 0
                 if currType : currTypeExpr = "type=\"" + currType + "\" "
